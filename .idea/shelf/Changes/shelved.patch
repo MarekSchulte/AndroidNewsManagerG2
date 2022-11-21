@@ -1,0 +1,2915 @@
+Index: .idea/.gitignore
+===================================================================
+diff --git a/.idea/.gitignore b/.idea/.gitignore
+deleted file mode 100644
+--- a/.idea/.gitignore	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,3 +0,0 @@
+-# Default ignored files
+-/shelf/
+-/workspace.xml
+Index: app/src/main/java/es/upm/etsiinf/upmnews/utils/AdaptadorListaArticulos.java
+===================================================================
+diff --git a/app/src/main/java/es/upm/etsiinf/upmnews/utils/AdaptadorListaArticulos.java b/app/src/main/java/es/upm/etsiinf/upmnews/utils/AdaptadorListaArticulos.java
+deleted file mode 100644
+--- a/app/src/main/java/es/upm/etsiinf/upmnews/utils/AdaptadorListaArticulos.java	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,187 +0,0 @@
+-package es.upm.etsiinf.upmnews.utils;
+-
+-import android.app.AlertDialog;
+-import android.content.Context;
+-import android.content.DialogInterface;
+-import android.content.Intent;
+-import android.graphics.Bitmap;
+-import android.graphics.BitmapFactory;
+-import android.graphics.Color;
+-import android.text.Html;
+-import android.util.Base64;
+-import android.view.LayoutInflater;
+-import android.view.View;
+-import android.view.ViewGroup;
+-import android.view.ViewParent;
+-import android.widget.BaseAdapter;
+-import android.widget.ImageView;
+-import android.widget.TextView;
+-
+-import java.util.ArrayList;
+-import java.util.List;
+-
+-import androidx.core.content.ContextCompat;
+-import es.upm.etsiinf.upmnews.DetailsScreen;
+-import es.upm.etsiinf.upmnews.EditCreateForm;
+-import es.upm.etsiinf.upmnews.R;
+-import es.upm.etsiinf.upmnews.model.Article;
+-import es.upm.etsiinf.upmnews.model.Image;
+-import es.upm.etsiinf.upmnews.utils.async.DeleteArticleTask;
+-
+-import static es.upm.etsiinf.upmnews.utils.SerializationUtils.createScaledImage;
+-
+-
+-public class AdaptadorListaArticulos extends BaseAdapter {
+-    private Context context;
+-    private List<Article> datos;
+-    private static LayoutInflater inflater = null;
+-    private Boolean visibleExtras = false;
+-    private String topic = "All";
+-
+-    public AdaptadorListaArticulos(Context context, List<Article> datos, Boolean loggedin){
+-        this.context = context;
+-        this.datos = datos;
+-        inflater = (LayoutInflater) context.getSystemService(context.LAYOUT_INFLATER_SERVICE);
+-        this.visibleExtras = loggedin;
+-    }
+-
+-    @Override
+-    public View getView(int i, View view, ViewGroup viewGroup) {
+-
+-        if (view == null) {
+-            view = inflater.inflate(
+-                    R.layout.article_list_item, viewGroup,false);
+-        }
+-        //final View vista = inflater.inflate(R.layout.article_list_item,viewGroup,false);
+-        if(visibleExtras) view.findViewById(R.id.extraButtons).setVisibility(View.VISIBLE);
+-        TextView titulo = view.findViewById(R.id.tituloArticulo);
+-        titulo.setText(this.datos.get(i).getTitleText());
+-        TextView resumen = view.findViewById(R.id.abstractTV);
+-        resumen.setText(Html.fromHtml(this.datos.get(i).getAbstractText(),Html.FROM_HTML_MODE_COMPACT));
+-        TextView categoria = view.findViewById(R.id.categoryTV);
+-        String category = this.datos.get(i).getCategory();
+-        categoria.setText(category);
+-        setColor(category, categoria);
+-
+-           ImageView image = view.findViewById(R.id.articuloImageView);;
+-           Image img = this.datos.get(i).getImage();
+-            if (img != null) {
+-                byte[] decodedString = Base64.decode(img.getImage(), Base64.DEFAULT);
+-                Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+-                Bitmap scaledImage = createScaledImage(decodedByte,2000,2000);
+-                image.setImageBitmap(scaledImage);
+-                image.setVisibility(View.VISIBLE);
+-            }else{
+-                image.setVisibility(View.INVISIBLE);
+-            }
+-
+-        view.setTag(this.datos.get(i).getId());
+-
+-        view.setOnClickListener(new View.OnClickListener(){
+-            @Override
+-            public void onClick(View v){
+-                //Aqui deberia crearse un nuevo intent y pasarle los datos de la imagen o hacer una consulta especifica del id del articulo a la api.
+-                CharSequence text = v.getTag().toString();
+-                Intent detalleArticulo = new Intent(context, DetailsScreen.class);
+-                detalleArticulo.putExtra( "id", text);
+-                context.startActivity(detalleArticulo);
+-            }
+-        });
+-
+-        view.findViewById(R.id.deleteArticleButton).setOnClickListener(new View.OnClickListener(){
+-            @Override
+-            public void onClick(View v){
+-                AlertDialog.Builder alertDialog2 = new AlertDialog.Builder(context);
+-                ViewParent parent = v.getParent();
+-                View grandparent = (View) parent.getParent();
+-                final String tag = grandparent.getTag().toString();
+-                // Setting Dialog Title
+-                alertDialog2.setTitle(R.string.confirm_delete);
+-                // Setting Dialog Message
+-                alertDialog2.setMessage(R.string.delete_query);
+-                // Setting Icon to Dialog
+-                alertDialog2.setIcon(R.drawable.delete);
+-                // Setting Positive "Yes" Btn
+-                alertDialog2.setPositiveButton(R.string.yes,
+-                        new DialogInterface.OnClickListener() {
+-                            public void onClick(DialogInterface dialog, int which) {
+-                                DeleteArticleTask task = new DeleteArticleTask(tag, context);
+-                                task.execute();
+-                            }
+-                        });
+-                // Setting Negative "NO" Btn
+-                alertDialog2.setNegativeButton(R.string.no,
+-                        new DialogInterface.OnClickListener() {
+-                            public void onClick(DialogInterface dialog, int which) {
+-                                dialog.cancel();
+-                            }
+-                        });
+-                // Showing Alert Dialog
+-                alertDialog2.show();
+-            }
+-        });
+-
+-        view.findViewById(R.id.editArticleButton).setOnClickListener(new View.OnClickListener(){
+-            @Override
+-            public void onClick(View v){
+-                ViewParent parent = v.getParent();
+-                View grandparent = (View) parent.getParent();
+-                final CharSequence tag = grandparent.getTag().toString();
+-                Intent editArticle = new Intent(context, EditCreateForm.class);
+-                editArticle.putExtra( "id", tag);
+-                context.startActivity(editArticle);
+-            }
+-        });
+-
+-        return view;
+-    }
+-
+-    @Override
+-    public int getCount() {
+-        return datos.size();
+-    }
+-
+-    @Override
+-    public Object getItem(int i) {
+-        return null;
+-    }
+-
+-    @Override
+-    public long getItemId(int i) {
+-        return 0;
+-    }
+-
+-    public void setDatos(List<Article> nuevosDatos){
+-        this.datos = nuevosDatos;
+-    }
+-
+-    public void filter(String topic) {
+-        List<Article> filtered = new ArrayList<>();
+-        if(!topic.equals("All")){
+-            for (Article article : datos) {
+-                if (article.getCategory().equals(topic)) {
+-                    filtered.add(article);
+-                }
+-            }
+-            datos = filtered;
+-        }
+-    }
+-
+-    private void setColor(String category, TextView label){
+-        switch (category){
+-            case "Sports":
+-                label.setBackgroundColor(ContextCompat.getColor(context,R.color.Sports));
+-                break;
+-            case "National":
+-                label.setBackgroundColor(ContextCompat.getColor(context,R.color.National));
+-                break;
+-            case "Economy":
+-                label.setBackgroundColor(ContextCompat.getColor(context,R.color.Economy));
+-                break;
+-            case "Technology":
+-                label.setBackgroundColor(ContextCompat.getColor(context,R.color.Technology));
+-                break;
+-        }
+-    }
+-
+-}
+Index: app/src/main/java/es/upm/etsiinf/upmnews/model/Article.java
+===================================================================
+diff --git a/app/src/main/java/es/upm/etsiinf/upmnews/model/Article.java b/app/src/main/java/es/upm/etsiinf/upmnews/model/Article.java
+deleted file mode 100644
+--- a/app/src/main/java/es/upm/etsiinf/upmnews/model/Article.java	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,171 +0,0 @@
+-package es.upm.etsiinf.upmnews.model;
+-
+-
+-import org.json.simple.JSONObject;
+-
+-import java.util.Date;
+-import java.util.Hashtable;
+-
+-import es.upm.etsiinf.upmnews.utils.Logger;
+-import es.upm.etsiinf.upmnews.utils.SerializationUtils;
+-
+-
+-public class Article extends ModelEntity {
+-
+-	private String titleText;
+-	private String category;
+-	private String abstractText;
+-	private String bodyText;
+-	private String subtitle;
+-	private int idUser;
+-	private Image mainImage;
+-	private String imageDescription;
+-	private String thumbnail;
+-	private Date lastUpdate;
+-
+-	private String parseStringFromJson(JSONObject jsonArticle, String key, String def){
+-		Object in = jsonArticle.getOrDefault(key,def);
+-		return (in==null?def:in).toString();
+-	}
+-
+-	@SuppressWarnings("unchecked")
+-	public Article(JSONObject jsonArticle){
+-		try{
+-			id = Integer.parseInt(jsonArticle.get("id").toString());
+-			idUser = Integer.parseInt(parseStringFromJson(jsonArticle,"id_user","0"));
+-			titleText = parseStringFromJson(jsonArticle,"title","").replaceAll("\\\\","");
+-			category = parseStringFromJson(jsonArticle,"category","").replaceAll("\\\\","");
+-			abstractText = parseStringFromJson(jsonArticle,"abstract","").replaceAll("\\\\","");
+-			bodyText = parseStringFromJson(jsonArticle,"body","").replaceAll("\\\\","");
+-			subtitle = parseStringFromJson(jsonArticle,"subtitle","").replaceAll("\\\\","");
+-			
+-			imageDescription = parseStringFromJson(jsonArticle,"image_description","").replaceAll("\\\\","");
+-			thumbnail = parseStringFromJson(jsonArticle,"thumbnail_image","").replaceAll("\\\\","");
+-
+-			lastUpdate = SerializationUtils.dateFromString(parseStringFromJson(jsonArticle,"update_date","").replaceAll("\\\\",""));
+-
+-			String imageData = parseStringFromJson(jsonArticle,"image_data","").replaceAll("\\\\","");
+-		
+-			if (imageData!=null && !imageData.isEmpty())
+-				mainImage = new Image(1, imageDescription, id, imageData);
+-		}catch(Exception e){
+-			Logger.log(Logger.ERROR, "ERROR: Error parsing Article: from json"+jsonArticle+"\n"+e.getMessage());
+-			throw new IllegalArgumentException("ERROR: Error parsing Article: from json"+jsonArticle);
+-		}
+-	}
+-	
+-	public Article(String category, String titleText, String abstractText, String body, String subtitle, String idUser){
+-		id = -1;
+-		this.category = category;
+-		this.idUser = Integer.parseInt(idUser);
+-		this.abstractText = abstractText;
+-		this.titleText = titleText;
+-		this.bodyText = body;
+-		this.subtitle = subtitle;
+-	}
+-	
+-	public void setId(int id){
+-		if (id <1){
+-			throw new IllegalArgumentException("ERROR: Error setting a wrong id to an article:"+id);
+-		}
+-		if (this.id>0 ){
+-			throw new IllegalArgumentException("ERROR: Error setting an id to an article with an already valid id:"+this.id);
+-		}
+-		this.id = id;
+-	}
+-	
+-	public String getTitleText() {
+-		return titleText;
+-	}
+-	
+-	public String getCategory() {
+-		return category;
+-	}
+-	public void setCategory(String category) {
+-		this.category= category;
+-	}
+-	public void setTitleText(String titleText) {
+-		this.titleText = titleText;
+-	}
+-	public String getAbstractText() {
+-		return abstractText;
+-	}
+-	public void setAbstractText(String abstractText) {
+-		this.abstractText = abstractText;
+-	}
+-	public String getBodyText() {
+-		return bodyText;
+-	}
+-	public void setBodyText(String bodyText) {
+-		this.bodyText = bodyText;
+-	}
+-	public String getSubtitleText() {
+-		return subtitle;
+-	}
+-	public void setSubtitleText(String subtitle) {
+-		this.subtitle = subtitle;
+-	}
+-	
+-	public int getIdUser(){
+-		return idUser;
+-	}
+-	public Image getImage() {
+-		Image image = mainImage;
+-		if (mainImage==null && thumbnail!=null && !thumbnail.isEmpty()){
+-			image = new Image(1,"",getId(),thumbnail);
+-		}
+-		return image;
+-	}
+-
+-	public void setImage(Image image) {
+-		this.mainImage = image;
+-	}
+-	
+-	public Image addImage(String b64Image, String description) {
+-		int order = 1;
+-		Image img =new Image(order, description, getId(), b64Image);
+-		mainImage= img;
+-		imageDescription = mainImage.getDescription();
+-		return img;
+-	}
+-	
+-	@Override
+-	public String toString() {
+-		return "Article [id=" + getId()
+-				+", titleText=" + titleText  
+-				+", abstractText=" + abstractText 
+-				+  ", bodyText="	+ bodyText + ", subtitleText=" + subtitle
+-				+ ", lastUpdate=" + SerializationUtils.dateToString(lastUpdate)
+-				+", image_description=" + imageDescription
+-				+", image_data=" + mainImage
+-				+", thumbnail=" + thumbnail 
+-				+ "]";
+-	}
+-	
+-	public Hashtable<String,String> getAttributes(){
+-		Hashtable<String,String> res = new Hashtable<String,String>();
+-		res.put("category", category);
+-		res.put("abstract", abstractText);
+-		res.put("title", titleText);
+-		res.put("body", bodyText);
+-		res.put("subtitle", subtitle);
+-		if (mainImage!=null){
+-			res.put("image_data", mainImage.getImage());
+-			res.put("image_media_type", "image/jpg");
+-		}
+-
+-		if (mainImage!=null && mainImage.getDescription()!=null && !mainImage.getDescription().isEmpty()) {
+-			res.put("image_description", mainImage.getDescription());
+-		}else if (imageDescription!=null && !imageDescription.isEmpty()) {
+-			res.put("image_description", imageDescription);
+-		}
+-		res.put("lastUpdate",SerializationUtils.dateToString(lastUpdate));
+-		return res;
+-	}
+-
+-	//getters
+-	public Date getLastUpdate(){
+-		return lastUpdate;
+-	}
+-	public void setThumbnail(String scaled){this.thumbnail=scaled;}
+-}
+Index: app/src/main/java/es/upm/etsiinf/upmnews/AsyncResponse.java
+===================================================================
+diff --git a/app/src/main/java/es/upm/etsiinf/upmnews/AsyncResponse.java b/app/src/main/java/es/upm/etsiinf/upmnews/AsyncResponse.java
+deleted file mode 100644
+--- a/app/src/main/java/es/upm/etsiinf/upmnews/AsyncResponse.java	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,9 +0,0 @@
+-package es.upm.etsiinf.upmnews;
+-
+-import es.upm.etsiinf.upmnews.model.Article;
+-
+-//interface of the methods launching async tasks
+-public interface AsyncResponse {
+-    void processFinish(Boolean output);
+-    void processData(Article output);
+-}
+Index: app/src/main/java/es/upm/etsiinf/upmnews/utils/network/exceptions/AuthenticationError.java
+===================================================================
+diff --git a/app/src/main/java/es/upm/etsiinf/upmnews/utils/network/exceptions/AuthenticationError.java b/app/src/main/java/es/upm/etsiinf/upmnews/utils/network/exceptions/AuthenticationError.java
+deleted file mode 100644
+--- a/app/src/main/java/es/upm/etsiinf/upmnews/utils/network/exceptions/AuthenticationError.java	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,13 +0,0 @@
+-package es.upm.etsiinf.upmnews.utils.network.exceptions;
+-
+-
+-public class AuthenticationError extends Exception {
+-    /**
+-     *
+-     */
+-    private static final long serialVersionUID = -2703194338913940279L;
+-
+-    public AuthenticationError(String message){
+-        super(message);
+-    }
+-}
+Index: app/src/main/java/es/upm/etsiinf/upmnews/utils/async/DeleteArticleTask.java
+===================================================================
+diff --git a/app/src/main/java/es/upm/etsiinf/upmnews/utils/async/DeleteArticleTask.java b/app/src/main/java/es/upm/etsiinf/upmnews/utils/async/DeleteArticleTask.java
+deleted file mode 100644
+--- a/app/src/main/java/es/upm/etsiinf/upmnews/utils/async/DeleteArticleTask.java	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,55 +0,0 @@
+-package es.upm.etsiinf.upmnews.utils.async;
+-
+-import android.content.Context;
+-import android.os.AsyncTask;
+-import android.util.Log;
+-import android.widget.Toast;
+-
+-import es.upm.etsiinf.upmnews.MainActivity;
+-import es.upm.etsiinf.upmnews.R;
+-import es.upm.etsiinf.upmnews.utils.network.ModelManager;
+-import es.upm.etsiinf.upmnews.utils.network.exceptions.ServerCommunicationError;
+-
+-public class DeleteArticleTask extends AsyncTask<Void, Void, Boolean> {
+-
+-    //id from the article selected to delete
+-    private String id;
+-    //calling context of this task
+-    private Context context;
+-
+-    //Constructor of the async task
+-    public DeleteArticleTask(String id, Context context){
+-        this.id = id;
+-        this.context = context;
+-    }
+-
+-    //Async method executed
+-    @Override
+-    protected Boolean doInBackground(Void... voids) {
+-        boolean res= true;
+-        try {
+-            ModelManager.deleteArticle(Integer.parseInt(id));
+-        } catch (ServerCommunicationError e) {
+-            res=false;
+-            Log.i("DeleteArticleTask",e.getMessage());
+-        }
+-        return res;
+-    }
+-
+-    //Async method executed when task finished, displaying feedback of the operation
+-    @Override
+-    public void onPostExecute(Boolean res){
+-        String text;
+-        if(res){
+-            text = context.getString(R.string.delete_success);
+-        }else{
+-            text = context.getString(R.string.delete_error);
+-        }
+-        int duration = Toast.LENGTH_SHORT;
+-        Toast toast = Toast.makeText(context, text, duration);
+-        toast.show();
+-        MainActivity ma = (MainActivity) context;
+-        ma.refresh();
+-    }
+-
+-}
+Index: app/src/main/java/es/upm/etsiinf/upmnews/DetailsScreen.java
+===================================================================
+diff --git a/app/src/main/java/es/upm/etsiinf/upmnews/DetailsScreen.java b/app/src/main/java/es/upm/etsiinf/upmnews/DetailsScreen.java
+deleted file mode 100644
+--- a/app/src/main/java/es/upm/etsiinf/upmnews/DetailsScreen.java	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,113 +0,0 @@
+-package es.upm.etsiinf.upmnews;
+-
+-import android.content.Intent;
+-import android.graphics.Bitmap;
+-import android.graphics.BitmapFactory;
+-import android.os.Bundle;
+-import android.text.Html;
+-import android.util.Base64;
+-import android.util.Log;
+-import android.view.Menu;
+-import android.view.MenuInflater;
+-import android.widget.ImageView;
+-import android.widget.TextView;
+-
+-import androidx.appcompat.app.AppCompatActivity;
+-
+-import java.util.Hashtable;
+-
+-import androidx.appcompat.widget.Toolbar;
+-import androidx.core.content.ContextCompat;
+-import es.upm.etsiinf.upmnews.model.Article;
+-import es.upm.etsiinf.upmnews.model.Image;
+-import es.upm.etsiinf.upmnews.utils.async.GetArticleDetails;
+-
+-public class DetailsScreen extends AppCompatActivity implements AsyncResponse{
+-
+-    //creation of the class instantiating que upper bar and launching the async task
+-    @Override
+-    protected void onCreate(Bundle savedInstanceState) {
+-        super.onCreate(savedInstanceState);
+-        setContentView(R.layout.details_screen);
+-        Toolbar myToolbar = findViewById(R.id.appbarDets);
+-        setSupportActionBar(myToolbar);
+-        Intent in = getIntent();
+-        String id = in.getStringExtra("id");
+-        GetArticleDetails task = new GetArticleDetails(this,id);
+-        task.execute();
+-    }
+-
+-    //auxiliary method to load all elements on the view
+-    public void loadElements(Article load){
+-        try{
+-            //load article elements on view
+-            TextView cat = findViewById(R.id.categoryShow);
+-            TextView title= findViewById(R.id.titleShow);
+-            TextView subtitle = findViewById(R.id.subtitleShow);
+-            TextView resume = findViewById(R.id.abstractShow);
+-            ImageView img = findViewById(R.id.imageShow);
+-            TextView body= findViewById(R.id.bodyShow);
+-            TextView userUpdate = findViewById(R.id.footnoteNameShow);
+-            TextView dateUpdate = findViewById(R.id.footnoteDateShow);
+-
+-            Hashtable<String,String> elems= load.getAttributes();
+-
+-            String category = elems.get("category");
+-            cat.setText(category);
+-            setColor(category, cat);
+-
+-            title.setText(elems.get("title"));
+-            subtitle.setText(Html.fromHtml(elems.get("subtitle"),Html.FROM_HTML_MODE_COMPACT));
+-            resume.setText(Html.fromHtml(elems.get("abstract"),Html.FROM_HTML_MODE_COMPACT));
+-            Image artImg = load.getImage();
+-            if(artImg!=null){
+-                String imgbase64 = artImg.getImage();
+-                byte[] decodedString = Base64.decode(imgbase64, Base64.DEFAULT);
+-                Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+-                img.setImageBitmap(decodedByte);
+-            }
+-            body.setText(Html.fromHtml(elems.get("body"),Html.FROM_HTML_MODE_COMPACT));
+-            userUpdate.setText(Integer.toString(load.getIdUser()));
+-            dateUpdate.setText(elems.get("lastUpdate"));
+-        }catch(Exception e){
+-            Log.i("DetailsScreen",e.getMessage());
+-        }
+-    }
+-
+-    //method called by the async task
+-    @Override
+-    public void processData(Article output) {
+-        loadElements(output);
+-    }
+-
+-    //empty method to fulfill the interface specification
+-    @Override
+-    public void processFinish(Boolean output) {}
+-
+-    //auxiliary method to configure the upper bar
+-    @Override
+-    public boolean onCreateOptionsMenu(Menu menu) {
+-        MenuInflater inflater = getMenuInflater();
+-        inflater.inflate(R.menu.titlebar, menu);
+-        return true;
+-    }
+-
+-    //auxiliary method to change the color of the category displayed
+-    private void setColor(String category, TextView label){
+-        switch (category){
+-            case "Sports":
+-                label.setBackgroundColor(ContextCompat.getColor(this,R.color.Sports));
+-                break;
+-            case "National":
+-                label.setBackgroundColor(ContextCompat.getColor(this,R.color.National));
+-                break;
+-            case "Economy":
+-                label.setBackgroundColor(ContextCompat.getColor(this,R.color.Economy));
+-                break;
+-            case "Technology":
+-                label.setBackgroundColor(ContextCompat.getColor(this,R.color.Technology));
+-                break;
+-        }
+-    }
+-}
+-
+Index: .idea/discord.xml
+===================================================================
+diff --git a/.idea/discord.xml b/.idea/discord.xml
+deleted file mode 100644
+--- a/.idea/discord.xml	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,9 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<project version="4">
+-  <component name="DiscordProjectSettings">
+-    <option name="show" value="true" />
+-  </component>
+-  <component name="ProjectNotificationSettings">
+-    <option name="askShowProject" value="false" />
+-  </component>
+-</project>
+\ No newline at end of file
+Index: app/src/main/java/es/upm/etsiinf/upmnews/EditCreateForm.java
+===================================================================
+diff --git a/app/src/main/java/es/upm/etsiinf/upmnews/EditCreateForm.java b/app/src/main/java/es/upm/etsiinf/upmnews/EditCreateForm.java
+deleted file mode 100644
+--- a/app/src/main/java/es/upm/etsiinf/upmnews/EditCreateForm.java	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,269 +0,0 @@
+-package es.upm.etsiinf.upmnews;
+-
+-import android.app.Activity;
+-import android.app.AlertDialog;
+-import android.content.DialogInterface;
+-import android.content.Intent;
+-import android.graphics.Bitmap;
+-import android.graphics.BitmapFactory;
+-import android.os.Bundle;
+-import android.util.Base64;
+-import android.util.Log;
+-import android.view.Menu;
+-import android.view.MenuInflater;
+-import android.view.View;
+-import android.widget.Button;
+-import android.widget.EditText;
+-import android.widget.ImageView;
+-import android.widget.Spinner;
+-import android.widget.TextView;
+-
+-import androidx.annotation.Nullable;
+-import androidx.appcompat.app.AppCompatActivity;
+-
+-import java.io.ByteArrayOutputStream;
+-import java.io.FileNotFoundException;
+-import java.io.IOException;
+-import java.io.InputStream;
+-
+-import androidx.appcompat.widget.Toolbar;
+-import es.upm.etsiinf.upmnews.model.Article;
+-import es.upm.etsiinf.upmnews.model.Image;
+-import es.upm.etsiinf.upmnews.utils.SerializationUtils;
+-import es.upm.etsiinf.upmnews.utils.async.GetArticleDetails;
+-import es.upm.etsiinf.upmnews.utils.network.ModelManager;
+-import es.upm.etsiinf.upmnews.utils.async.UploadArticleTask;
+-
+-public class EditCreateForm extends AppCompatActivity implements AsyncResponse{
+-    //variable os the photo selector
+-    private static final int SELECT_PHOTO = 1;
+-    //Elements of the form
+-    private String title;
+-    private String subtitle;
+-    private String resume;
+-    private String body;
+-    private String category;
+-    private String articleImage="";
+-    private int id;
+-
+-    //creation of the class that discriminates if its edit or create and create the buttons listeners
+-    @Override
+-    protected void onCreate(Bundle savedInstanceState) {
+-        super.onCreate(savedInstanceState);
+-        setContentView(R.layout.editcreate_form);
+-        Toolbar myToolbar = findViewById(R.id.appbarDets);
+-        setSupportActionBar(myToolbar);
+-        Intent in = getIntent();
+-        String inId = in.getStringExtra("id");
+-        id = Integer.parseInt(inId);
+-        //if id>=0 load data to edit
+-        if(id>=0){ getData(inId);}
+-        //button to select a picture from the phone gallery
+-        Button bpic = findViewById(R.id.buttonPhoto);
+-        bpic.setOnClickListener(new View.OnClickListener() {
+-            @Override
+-            public void onClick(View v) {
+-                Intent in = new Intent();
+-                in.setType("*/*");
+-                in.putExtra(Intent.EXTRA_MIME_TYPES,new String[]{"image/jpg","image/jpeg","image/png"});
+-                in.setAction(Intent.ACTION_GET_CONTENT);
+-                in.addCategory(Intent.CATEGORY_OPENABLE);
+-                startActivityForResult(in,SELECT_PHOTO);
+-            }
+-        });
+-
+-        //button to cancel the action and go back to the previous screen
+-        Button bcancel = findViewById(R.id.buttonCancel);
+-        bcancel.setOnClickListener(new View.OnClickListener() {
+-            @Override
+-            public void onClick(View v) {
+-                onBackPressed();
+-            }
+-        });
+-
+-        //button to erase the selected image
+-        Button berase= findViewById(R.id.buttonPhotoErase);
+-        berase.setOnClickListener(new View.OnClickListener() {
+-            @Override
+-            public void onClick(View v) {
+-                cleanImage();
+-            }
+-        });
+-
+-        //button that checks all the mandatory fields and uploads the article to the server
+-        Button bsave = findViewById(R.id.buttonSave);
+-        bsave.setOnClickListener(new View.OnClickListener() {
+-            @Override
+-            public void onClick(View v) {
+-                if(!checkFields()){
+-                    AlertDialog.Builder mandatory = new AlertDialog.Builder(EditCreateForm.this);
+-                    mandatory.setTitle(R.string.mandatory_fields);
+-                    mandatory.setMessage(R.string.complete_fields);
+-                    mandatory.setPositiveButton(R.string.ok,null);
+-                    AlertDialog alert = mandatory.create();
+-                    alert.show();
+-                }else{
+-                    saveArticle();
+-                }
+-            }
+-        });
+-    }
+-
+-
+-    //photo selector activity on result executes this method
+-    @Override
+-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+-        super.onActivityResult(requestCode, resultCode, data);
+-        if(requestCode==SELECT_PHOTO && resultCode == Activity.RESULT_OK){
+-            InputStream stream = null;
+-            try {
+-                stream = getContentResolver().openInputStream(data.getData());
+-                Bitmap bitmap = BitmapFactory.decodeStream(stream);
+-                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+-                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream);
+-                byte[] byteArray = byteArrayOutputStream .toByteArray();
+-                articleImage = Base64.encodeToString(byteArray, Base64.DEFAULT);
+-                ((ImageView)findViewById(R.id.imageShow)).setImageBitmap(bitmap);
+-            } catch (FileNotFoundException e) {
+-                Log.i("EditCreateForm",e.getMessage());
+-            } finally {
+-                if (stream != null) {
+-                    try {
+-                        stream.close();
+-                    } catch (IOException e) {
+-                        Log.i("EditCreateForm",e.getMessage());
+-                    }
+-                }
+-            }
+-        }
+-    }
+-
+-    //auxiliary method to check if all the mandatory fields are filled
+-    private boolean checkFields(){
+-        boolean res =true;
+-        title = ((EditText)findViewById(R.id.newTitle)).getText().toString();
+-        subtitle = ((EditText)findViewById(R.id.newSubtitle)).getText().toString();
+-        resume = ((EditText)findViewById(R.id.newAbstract)).getText().toString();
+-        body = ((EditText)findViewById(R.id.newBody)).getText().toString();
+-        Spinner cat = findViewById(R.id.selectCategory);
+-        category = (String)cat.getItemAtPosition(cat.getSelectedItemPosition());
+-        if(title.isEmpty() || subtitle.isEmpty() || resume.isEmpty() || body.isEmpty() || category.isEmpty()){
+-            res = false;
+-        }
+-        return res;
+-    }
+-
+-    //method that creates the async task with the formed article
+-    private void saveArticle(){
+-            Article upload = new Article(category,title, resume,body,subtitle,ModelManager.getIdUser());
+-            if(!articleImage.isEmpty()){
+-                upload.addImage(articleImage,"Image associated to this article");
+-                upload.setThumbnail(SerializationUtils.createScaledStrImage(articleImage,160,90));
+-            }
+-            if(id>=0){
+-                upload.setId(id);
+-            }
+-            UploadArticleTask task = new UploadArticleTask(this,upload);
+-            task.execute();
+-
+-    }
+-
+-    //auxiliary method to save the photo
+-    private void loadImage(Bitmap photo){
+-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+-        photo.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream);
+-        byte[] byteArray = byteArrayOutputStream .toByteArray();
+-        articleImage = Base64.encodeToString(byteArray, Base64.DEFAULT);
+-    }
+-
+-    //okay dialog
+-    public void saveOk(){
+-        AlertDialog.Builder ok = new AlertDialog.Builder(EditCreateForm.this);
+-        ok.setTitle(R.string.article_saved_title);
+-        ok.setMessage(R.string.article_saved);
+-        ok.setPositiveButton(R.string.ok,new DialogInterface.OnClickListener() {
+-            public void onClick(DialogInterface dialog,int id) {
+-                onBackPressed();
+-            }
+-        });
+-        AlertDialog okMessage = ok.create();
+-        okMessage.show();
+-    }
+-
+-    //error dialog
+-    public void saveFail(){
+-        AlertDialog.Builder ok = new AlertDialog.Builder(EditCreateForm.this);
+-        ok.setTitle(R.string.upload_error);
+-        ok.setMessage(R.string.sorry);
+-        ok.setPositiveButton(R.string.ok,null);
+-        AlertDialog okMessage = ok.create();
+-        okMessage.show();
+-    }
+-
+-    //method to clean image selection
+-    public void cleanImage(){
+-        articleImage="";
+-        ImageView show = findViewById(R.id.imageShow);
+-        show.setImageDrawable(null);
+-
+-    }
+-
+-    //method to retrieve the specific data from the article selected to edit
+-    private void getData(String id){
+-        GetArticleDetails task = new GetArticleDetails(this,id);
+-        task.execute();
+-    }
+-
+-    //method called by the async task on finish when details retrieved
+-    @Override
+-    public void processData(Article output) {
+-        EditText title =findViewById(R.id.newTitle);
+-        EditText subtitle =findViewById(R.id.newSubtitle);
+-        EditText resume =findViewById(R.id.newAbstract);
+-        EditText body =findViewById(R.id.newBody);
+-        Spinner cat = findViewById(R.id.selectCategory);
+-        ImageView photo =findViewById(R.id.imageShow);
+-
+-        title.setText(output.getTitleText(), TextView.BufferType.EDITABLE);
+-        subtitle.setText(output.getSubtitleText(),TextView.BufferType.EDITABLE);
+-        resume.setText(output.getAbstractText(),TextView.BufferType.EDITABLE);
+-        body.setText(output.getBodyText(),TextView.BufferType.EDITABLE);
+-        cat.setSelection(getIndex(cat,output.getCategory()));
+-        Image img = output.getImage();
+-        if(img!=null && !img.getDescription().isEmpty()){
+-            Bitmap oldphoto= getPhoto(img);
+-            photo.setImageBitmap(oldphoto);
+-            loadImage(oldphoto);
+-        }
+-    }
+-
+-    //auxiliary method to work with the category selector
+-    private int getIndex(Spinner spinner, String myString){
+-        for (int i=0;i<spinner.getCount();i++){
+-            if (spinner.getItemAtPosition(i).toString().equalsIgnoreCase(myString)){
+-                return i;
+-            }
+-        }
+-        return 0;
+-    }
+-
+-    //auxiliary method to generate the photo bitmap
+-    private Bitmap getPhoto(Image img){
+-        String imgbase64 = img.getImage();
+-        byte[] decodedString = Base64.decode(imgbase64, Base64.DEFAULT);
+-        return BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+-    }
+-
+-    //empty method to fulfill interface
+-    @Override
+-    public void processFinish(Boolean output) {  }
+-
+-    //auxiliary method to configure the upper bar
+-    @Override
+-    public boolean onCreateOptionsMenu(Menu menu) {
+-        MenuInflater inflater = getMenuInflater();
+-        inflater.inflate(R.menu.titlebar, menu);
+-        return true;
+-    }
+-
+-}
+Index: app/src/main/java/es/upm/etsiinf/upmnews/utils/async/GetArticleDetails.java
+===================================================================
+diff --git a/app/src/main/java/es/upm/etsiinf/upmnews/utils/async/GetArticleDetails.java b/app/src/main/java/es/upm/etsiinf/upmnews/utils/async/GetArticleDetails.java
+deleted file mode 100644
+--- a/app/src/main/java/es/upm/etsiinf/upmnews/utils/async/GetArticleDetails.java	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,43 +0,0 @@
+-package es.upm.etsiinf.upmnews.utils.async;
+-
+-import android.os.AsyncTask;
+-import android.util.Log;
+-
+-import es.upm.etsiinf.upmnews.AsyncResponse;
+-import es.upm.etsiinf.upmnews.model.Article;
+-import es.upm.etsiinf.upmnews.utils.network.ModelManager;
+-import es.upm.etsiinf.upmnews.utils.network.exceptions.ServerCommunicationError;
+-
+-import static es.upm.etsiinf.upmnews.utils.Logger.TAG;
+-
+-public class GetArticleDetails extends AsyncTask<Void, Void, Article> {
+-
+-    //calling context of this task
+-    private AsyncResponse context;
+-    //id from the article selected
+-    private String id;
+-
+-    //Constructor of the async task
+-    public GetArticleDetails(AsyncResponse cont, String idArt){
+-        this.context = cont;
+-        this.id = idArt;
+-    }
+-
+-    //Async method executed
+-    @Override
+-    protected Article doInBackground(Void... voids) {
+-        Article res = null;
+-            try {
+-                // obtain article by id
+-                res =  ModelManager.getArticle(Integer.parseInt(id));
+-                    Log.i(TAG, res.toString());
+-            } catch (ServerCommunicationError e) {
+-                Log.e(TAG,e.getMessage());
+-            }
+-        return res;
+-    }
+-
+-    //Async method executed when task finished, returning the article requested
+-    @Override
+-    public void onPostExecute(Article res){ context.processData(res);}
+-}
+Index: app/src/main/java/es/upm/etsiinf/upmnews/model/Image.java
+===================================================================
+diff --git a/app/src/main/java/es/upm/etsiinf/upmnews/model/Image.java b/app/src/main/java/es/upm/etsiinf/upmnews/model/Image.java
+deleted file mode 100644
+--- a/app/src/main/java/es/upm/etsiinf/upmnews/model/Image.java	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,114 +0,0 @@
+-package es.upm.etsiinf.upmnews.model;
+-
+-
+-import org.json.simple.JSONObject;
+-
+-import java.util.Hashtable;
+-
+-import es.upm.etsiinf.upmnews.utils.Logger;
+-import es.upm.etsiinf.upmnews.utils.SerializationUtils;
+-
+-
+-public class Image extends ModelEntity {
+-	private int order;
+-	private String description;
+-	private int idArticle;
+-	private String image;
+-	
+-	/**
+-	 * Consructor of an Image, always through article, because an image shouldn't exist alone without one article
+-	 * @param order of the image within the article
+-	 * @param description
+-	 * @param idArticle - id of article of the image
+-	 * @param b64Image - data of the image
+-	 */
+-	public Image(int order, String description, int idArticle, String b64Image){
+-		this.id=-1;
+-		this.order = order;
+-		this.description = description;
+-		this.idArticle=idArticle;
+-		this.image = SerializationUtils.createScaledStrImage(b64Image,500,500);
+-	}
+-	
+-	/**
+-	 *
+-	 * @param jsonImage
+-	 */
+-	@SuppressWarnings("unchecked")
+-	protected Image(JSONObject jsonImage){
+-		try{
+-			id = Integer.parseInt(jsonImage.get("id").toString());
+-			order = Integer.parseInt(jsonImage.get("order").toString());
+-			description = jsonImage.getOrDefault("description","").toString().replaceAll("\\\\","");
+-			idArticle = Integer.parseInt(jsonImage.get("id_article").toString().replaceAll("\\\\",""));
+-			image = (jsonImage.get("data").toString().replaceAll("\\\\",""));
+-		}catch(Exception e){
+-			Logger.log(Logger.ERROR, "ERROR: Error parsing Image: from json"+jsonImage+"\n"+e.getMessage());
+-			throw new IllegalArgumentException("ERROR: Error parsing Image: from json"+jsonImage);
+-		}
+-	}	
+-	
+-	/**
+-	 * 
+-	 * @return
+-	 */
+-	public int getOrder() {
+-		return order;
+-	}
+-	/**
+-	 * 
+-	 * @param order
+-	 */
+-	public void setOrder(int order) {
+-		this.order = order;
+-	}
+-	/**
+-	 * 
+-	 * @return
+-	 */
+-	public String getDescription() {
+-		return this.description;
+-	}
+-	/**
+-	 * 
+-	 * @param description
+-	 */
+-	public void setDescription(String description) {
+-		this.description = description;
+-	}
+-	/**
+-	 * 
+-	 * @return
+-	 */
+-	public int getIdArticle() {
+-		return idArticle;
+-	}
+-	
+-	/**
+-	 * 
+-	 */
+-	@Override
+-	public String toString() {
+-		return "Image [id=" + getId() + ", order=" + order + 
+-				", description=" + description + 
+-				", id_article=" + idArticle + 
+-				", data=" + image + "]";
+-	}
+-	
+-	protected Hashtable<String,String> getAttributes(){
+-		Hashtable<String,String> res = new Hashtable<String,String>();
+-		res.put("id_article", ""+idArticle);
+-		res.put("order", ""+order);
+-		res.put("description", description);
+-		res.put("data", image);
+-		res.put("media_type", "image/png");
+-		
+-		return res;
+-	}
+-	
+-	public String getImage(){
+-		return image;
+-	}
+-	
+-
+-}
+Index: .idea/jarRepositories.xml
+===================================================================
+diff --git a/.idea/jarRepositories.xml b/.idea/jarRepositories.xml
+deleted file mode 100644
+--- a/.idea/jarRepositories.xml	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,25 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<project version="4">
+-  <component name="RemoteRepositoriesConfiguration">
+-    <remote-repository>
+-      <option name="id" value="central" />
+-      <option name="name" value="Maven Central repository" />
+-      <option name="url" value="https://repo1.maven.org/maven2" />
+-    </remote-repository>
+-    <remote-repository>
+-      <option name="id" value="jboss.community" />
+-      <option name="name" value="JBoss Community repository" />
+-      <option name="url" value="https://repository.jboss.org/nexus/content/repositories/public/" />
+-    </remote-repository>
+-    <remote-repository>
+-      <option name="id" value="BintrayJCenter" />
+-      <option name="name" value="BintrayJCenter" />
+-      <option name="url" value="https://jcenter.bintray.com/" />
+-    </remote-repository>
+-    <remote-repository>
+-      <option name="id" value="Google" />
+-      <option name="name" value="Google" />
+-      <option name="url" value="https://dl.google.com/dl/android/maven2/" />
+-    </remote-repository>
+-  </component>
+-</project>
+\ No newline at end of file
+Index: app/src/main/java/es/upm/etsiinf/upmnews/utils/async/LoadArticlesTask.java
+===================================================================
+diff --git a/app/src/main/java/es/upm/etsiinf/upmnews/utils/async/LoadArticlesTask.java b/app/src/main/java/es/upm/etsiinf/upmnews/utils/async/LoadArticlesTask.java
+deleted file mode 100644
+--- a/app/src/main/java/es/upm/etsiinf/upmnews/utils/async/LoadArticlesTask.java	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,147 +0,0 @@
+-package es.upm.etsiinf.upmnews.utils.async;
+-
+-import android.content.SharedPreferences;
+-import android.os.AsyncTask;
+-import android.os.Parcelable;
+-import android.util.Log;
+-import android.view.View;
+-import android.widget.AbsListView;
+-import android.widget.ListView;
+-
+-import java.util.List;
+-
+-import es.upm.etsiinf.upmnews.AsyncResponse;
+-import es.upm.etsiinf.upmnews.MainActivity;
+-import es.upm.etsiinf.upmnews.R;
+-import es.upm.etsiinf.upmnews.model.Article;
+-import es.upm.etsiinf.upmnews.utils.AdaptadorListaArticulos;
+-import es.upm.etsiinf.upmnews.utils.network.ModelManager;
+-import es.upm.etsiinf.upmnews.utils.network.exceptions.ServerCommunicationError;
+-
+-import static android.view.View.GONE;
+-
+-public class LoadArticlesTask extends AsyncTask<Void, Void, List<Article>> {
+-    
+-	private static final String TAG = "LoadArticlesTask";
+-
+-	//calling contexts of the app to perform callbacks
+-    public AsyncResponse delegate = null;
+-    private MainActivity context;
+-    //variable to control visibility of special buttons
+-    public Boolean loggedin = false;
+-    //Local list of articles
+-    public List<Article> listaArticulos;
+-    //adapter of the Articles List
+-    public AdaptadorListaArticulos adaptador;
+-    //position during scroll to load more articles when end is reached
+-    Parcelable state = null;
+-    //reference to the Articles List of the mainScreen
+-    ListView listaArticulosView ;
+-
+-    //Constructor of the async task
+-    public LoadArticlesTask(MainActivity context){
+-        this.context = context;
+-    }
+-
+-
+-    //Async method executed to perform the login
+-    @Override
+-    protected List<Article> doInBackground(Void... voids) {
+-        List<Article> res = null;
+-
+-        try {
+-            String strIdUser;
+-            String strApiKey ;
+-            String strIdAuthUser;
+-
+-           if (!ModelManager.isConnected()){
+-                SharedPreferences preferencia = context.getSharedPreferences("user_info",context.MODE_PRIVATE);
+-                strIdUser = preferencia.getString("id_user","");
+-               strApiKey = preferencia.getString("strApiKey","");
+-               strIdAuthUser = preferencia.getString("strIdAuthUser","");
+-                Boolean guardado = !(strApiKey.equals("") || strIdUser.equals("") || strIdAuthUser.equals(""));
+-                    if(guardado){
+-                    ModelManager.stayloggedin(strIdUser,strApiKey,strIdAuthUser);
+-                    loggedin = true;
+-                }
+-            }
+-           else{
+-               loggedin = true;
+-           }
+-            res = ModelManager.getArticles(20, context.offsetL);
+-
+-        } catch (ServerCommunicationError e) {
+-            Log.e(TAG,e.getMessage());
+-        }
+-        return res;
+-    }
+-
+-    //Async method executed when task finished, loading the list of articles into the mainScreen with the scroller listener and configuring the list adapter
+-    @Override
+-    public void onPostExecute(List<Article> res){
+-        listaArticulosView  = context.findViewById(R.id.listaArticulos);
+-        Boolean scroll = false;
+-        int tamanioAntiguo = 0;
+-
+-        if(!res.isEmpty()){
+-
+-        if(listaArticulos != null){
+-            tamanioAntiguo = listaArticulos.size();
+-            listaArticulos.addAll(res);
+-            res = listaArticulos;
+-        }
+-        else{
+-            listaArticulos = res;
+-        }
+-
+-        adaptador = new AdaptadorListaArticulos(context,res,loggedin);
+-        adaptador.filter(context.getTopic());
+-        listaArticulosView.setAdapter(adaptador);
+-        context.findViewById(R.id.progress_bar_layout).setVisibility(GONE);
+-
+-        if(tamanioAntiguo != 0 && tamanioAntiguo != listaArticulos.size()){
+-            context.offsetL = res.size();
+-            listaArticulosView.onRestoreInstanceState(state);
+-        }
+-
+-        if(loggedin){
+-            context.findViewById(R.id.loginButton).setVisibility(View.GONE);
+-            context.findViewById(R.id.newArticleButton).setVisibility(View.VISIBLE);
+-        }
+-        //Scroll Listener to load more Articles
+-        listaArticulosView.setOnScrollListener(new AbsListView.OnScrollListener(){
+-            private int lastFirstVisibleItem;
+-
+-            @Override
+-            public void onScrollStateChanged(AbsListView view, int scrollState) {
+-            //Not needed. Implemented for interface
+-            }
+-
+-            @Override
+-            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+-                if (lastFirstVisibleItem < firstVisibleItem && firstVisibleItem + visibleItemCount >= totalItemCount) {
+-                    LoadArticlesTask task = new LoadArticlesTask(context);
+-                    task.delegate = context;
+-                    task.listaArticulos = listaArticulos;
+-                    task.state = listaArticulosView.onSaveInstanceState();
+-                    context.findViewById(R.id.progress_bar_layout).setVisibility(View.VISIBLE);
+-                    task.execute();
+-                }
+-                if (lastFirstVisibleItem > firstVisibleItem && loggedin)
+-                    context.findViewById(R.id.newArticleButton).setVisibility(View.VISIBLE);
+-                lastFirstVisibleItem=firstVisibleItem;
+-            }
+-        });
+-        context.setArticles(res);
+-        }
+-        else{
+-            if(loggedin) context.findViewById(R.id.newArticleButton).setVisibility(View.GONE);
+-            context.findViewById(R.id.progress_bar_layout).setVisibility(GONE);
+-
+-        }
+-
+-
+-    }
+-
+-
+-}
+Index: app/src/main/java/es/upm/etsiinf/upmnews/utils/Logger.java
+===================================================================
+diff --git a/app/src/main/java/es/upm/etsiinf/upmnews/utils/Logger.java b/app/src/main/java/es/upm/etsiinf/upmnews/utils/Logger.java
+deleted file mode 100644
+--- a/app/src/main/java/es/upm/etsiinf/upmnews/utils/Logger.java	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,32 +0,0 @@
+-package es.upm.etsiinf.upmnews.utils;
+-
+-
+-import android.util.Log;
+-
+-import java.util.Date;
+-
+-public class Logger {
+-    public static final int ERROR = -1;
+-    public static final int INFO = 1;
+-
+-    public static int level = INFO;
+-    public final static String TAG = "Logger";
+-
+-    public static final void log(int level, String message){
+-        if (level<=Logger.level){
+-            switch(level){
+-                case ERROR:
+-                    Log.e(TAG, message);
+-                    break;
+-                case INFO:
+-                    Log.i(TAG, message);
+-                    break;
+-            }
+-
+-        }
+-    }
+-
+-    private static String printCurrentDate() {
+-        return SerializationUtils.dateToString(new Date());
+-    }
+-}
+Index: app/src/main/java/es/upm/etsiinf/upmnews/utils/async/LoginTask.java
+===================================================================
+diff --git a/app/src/main/java/es/upm/etsiinf/upmnews/utils/async/LoginTask.java b/app/src/main/java/es/upm/etsiinf/upmnews/utils/async/LoginTask.java
+deleted file mode 100644
+--- a/app/src/main/java/es/upm/etsiinf/upmnews/utils/async/LoginTask.java	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,85 +0,0 @@
+-package es.upm.etsiinf.upmnews.utils.async;
+-
+-import android.app.Dialog;
+-import android.content.Context;
+-import android.content.SharedPreferences;
+-import android.os.AsyncTask;
+-import android.util.Log;
+-import android.widget.Toast;
+-
+-import es.upm.etsiinf.upmnews.AsyncResponse;
+-import es.upm.etsiinf.upmnews.R;
+-import es.upm.etsiinf.upmnews.utils.network.ModelManager;
+-import es.upm.etsiinf.upmnews.utils.network.exceptions.AuthenticationError;
+-
+-
+-public class LoginTask extends AsyncTask<Void, Void, Boolean> {
+-
+-    private static final String TAG = "LoadArticlesTask";
+-
+-    //credentials to perform the login connection to the server
+-    private String strIdUser;
+-    private String strApiKey;
+-    private String strIdAuthUser;
+-    private String password;
+-    //variable to control the remember me option
+-    private Boolean guardar;
+-    //calling contexts of the app to perform callbacks
+-    public AsyncResponse delegate = null;
+-    private Context context;
+-    private Dialog myDialog;
+-
+-
+-    //Constructor of the async task
+-    public LoginTask(String user, String pwd, Dialog myDialog, Context context, Boolean guardar){
+-        this.strIdUser = user;
+-        this.password = pwd;
+-        this.myDialog = myDialog;
+-        this.context = context;
+-        this.guardar = guardar;
+-    }
+-
+-    //Async method executed
+-    @Override
+-    protected Boolean doInBackground(Void... voids) {
+-        try {
+-            //Login
+-            ModelManager.login(strIdUser, password);
+-            strApiKey = ModelManager.getLoggedApiKey();
+-            strIdAuthUser = ModelManager.getLoggedAuthType();
+-            strIdUser = ModelManager.getLoggedIdUSer();
+-
+-            //Guardar información del usuario
+-            if(guardar && (!strApiKey.equals("") || strApiKey != null)){
+-                SharedPreferences preferencia = context.getSharedPreferences("user_info",context.MODE_PRIVATE);
+-                SharedPreferences.Editor editor = preferencia.edit();
+-                editor.putString("id_user", strIdUser);
+-                editor.putString("strApiKey", strApiKey);
+-                editor.putString("strIdAuthUser", strIdAuthUser);
+-                editor.commit();
+-            }
+-
+-            return true;
+-
+-        } catch (AuthenticationError e) {
+-            Log.e(TAG, e.getMessage());
+-            return false;
+-        }
+-    }
+-
+-    //Async method executed when task finished to display feedback of the operation
+-    @Override
+-    public void onPostExecute(Boolean success){
+-        CharSequence text;
+-        if(success){
+-            text  = context.getString(R.string.login_success);
+-        }else{
+-            text = context.getString(R.string.login_error);
+-        }
+-        Toast toast = Toast.makeText(context, text, Toast.LENGTH_SHORT);
+-        toast.show();
+-        myDialog.cancel();
+-        delegate.processFinish(success);
+-    }
+-
+-}
+Index: app/src/main/java/es/upm/etsiinf/upmnews/MainActivity.java
+===================================================================
+diff --git a/app/src/main/java/es/upm/etsiinf/upmnews/MainActivity.java b/app/src/main/java/es/upm/etsiinf/upmnews/MainActivity.java
+deleted file mode 100644
+--- a/app/src/main/java/es/upm/etsiinf/upmnews/MainActivity.java	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,286 +0,0 @@
+-package es.upm.etsiinf.upmnews;
+-
+-import android.app.AlertDialog;
+-import android.app.Dialog;
+-import android.app.job.JobInfo;
+-import android.app.job.JobScheduler;
+-import android.content.ComponentName;
+-import android.content.Context;
+-import android.content.DialogInterface;
+-import android.content.Intent;
+-import android.content.SharedPreferences;
+-import android.os.Bundle;
+-import android.preference.PreferenceManager;
+-import android.util.Log;
+-
+-import android.view.Menu;
+-import android.view.MenuInflater;
+-import android.view.MenuItem;
+-import android.view.View;
+-import android.widget.Button;
+-import android.widget.CompoundButton;
+-import android.widget.EditText;
+-import android.widget.ListView;
+-import android.widget.Switch;
+-import android.widget.Toast;
+-
+-import java.util.List;
+-import java.util.Properties;
+-
+-import androidx.appcompat.app.AppCompatActivity;
+-import androidx.appcompat.widget.Toolbar;
+-import es.upm.etsiinf.upmnews.model.Article;
+-import es.upm.etsiinf.upmnews.utils.NotificationJobService;
+-
+-import es.upm.etsiinf.upmnews.utils.AdaptadorListaArticulos;
+-import es.upm.etsiinf.upmnews.utils.SerializationUtils;
+-import es.upm.etsiinf.upmnews.utils.async.LoadArticlesTask;
+-import es.upm.etsiinf.upmnews.utils.async.LoginTask;
+-import es.upm.etsiinf.upmnews.utils.network.ModelManager;
+-
+-import static android.view.View.GONE;
+-import static android.view.View.VISIBLE;
+-
+-public class MainActivity extends AppCompatActivity implements AsyncResponse {
+-    Bundle savedInstanceState;
+-    Context context = this;
+-    Boolean guardar = false;
+-    MainActivity main = this;
+-    public int offsetL = 0;
+-    private Menu menu;
+-    private List<Article> articles;
+-    private String topic = "All";
+-
+-
+-    @Override
+-    protected void onCreate(Bundle savedInstanceState) {
+-        super.onCreate(savedInstanceState);
+-        this.savedInstanceState = savedInstanceState;
+-        setContentView(R.layout.activity_main);
+-        Toolbar myToolbar = findViewById(R.id.appbar);
+-        setSupportActionBar(myToolbar);
+-        Properties prop = new Properties();
+-        prop.setProperty("service_url","https://sanger.dia.fi.upm.es/pmd-task/");
+-        prop.setProperty("require_self_signed_cert","TRUE");
+-        ModelManager.configureConnection(prop);
+-        scheduleNotifications();
+-
+-    }
+-
+-    private void scheduleNotifications(){
+-        ComponentName serviceComponent = new ComponentName(context, NotificationJobService.class);
+-        JobInfo.Builder builder = new JobInfo.Builder(0, serviceComponent);
+-        builder.setMinimumLatency(5*60000);//5mins de intervalo minimo
+-        builder.setOverrideDeadline(10*60000);//10 mins de intervalo final
+-        builder.setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY);
+-        builder.setPersisted(true);
+-        JobScheduler jobScheduler = context.getSystemService(JobScheduler.class);
+-        jobScheduler.schedule(builder.build());
+-        Log.w("Notifications ","Created");
+-    }
+-
+-    @Override
+-    public void processFinish(Boolean loginSuccess) {
+-        //When adapter is finished
+-        if(loginSuccess){
+-            refresh();
+-            this.findViewById(R.id.loginButton).setVisibility(GONE);
+-            this.findViewById(R.id.newArticleButton).setVisibility(VISIBLE);
+-        }
+-    }
+-
+-    @Override
+-    public void processData(Article output) {
+-        //Not needed here, but implemented for the interface.
+-    }
+-
+-    public void callLoginDialog(View view)
+-    {
+-        //Go to login dialog
+-        final Dialog myDialog = new Dialog(this);
+-        myDialog.setContentView(R.layout.login_popup);
+-        myDialog.setCancelable(false);
+-        Button login = myDialog.findViewById(R.id.loginDialogButton);
+-        Button cancel = myDialog.findViewById(R.id.cancelDialogButton);
+-        Switch switchGuardar = myDialog.findViewById(R.id.switchRemember);
+-        switchGuardar.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+-                    guardar = isChecked;
+-            }
+-        });
+-        final EditText username = myDialog.findViewById(R.id.et_username);
+-        final EditText password = myDialog.findViewById(R.id.et_password);
+-        myDialog.show();
+-
+-        login.setOnClickListener(new View.OnClickListener()
+-        {
+-
+-            @Override
+-            public void onClick(View v)
+-            {
+-                String user = username.getText().toString();
+-                String pwd = password.getText().toString();
+-
+-                LoginTask task = new LoginTask(user, pwd, myDialog, context, guardar);
+-                task.delegate = main;
+-                task.execute();
+-            }
+-        });
+-
+-        cancel.setOnClickListener(new View.OnClickListener(){
+-            @Override
+-
+-            public void onClick(View v){
+-                myDialog.cancel();
+-            }
+-        });
+-    }
+-
+-    public void newArticle(View v) {
+-        //Go to new article view
+-        Intent editArticle = new Intent(context, EditCreateForm.class);
+-        editArticle.putExtra( "id", "-1");
+-        context.startActivity(editArticle);
+-    }
+-
+-    @Override
+-    public void onResume() {
+-        super.onResume();
+-        //Refresh the list of articles
+-        refresh();
+-    }
+-
+-    @Override
+-    protected void onRestart() {
+-        super.onRestart();
+-    }
+-
+-    public void refresh() {
+-        //New task to get new list of articles
+-        LoadArticlesTask task = new LoadArticlesTask(this);
+-        task.delegate = this;
+-        task.loggedin = ModelManager.isConnected();
+-        this.offsetL = 0;
+-        task.execute();
+-        MenuItem logout = null;
+-        //Find item menu
+-        if (menu != null) logout = menu.findItem(R.id.logout);
+-
+-        if (ModelManager.isConnected()) {
+-            //If is connected set visibility to new article button
+-            this.findViewById(R.id.loginButton).setVisibility(GONE);
+-            this.findViewById(R.id.newArticleButton).setVisibility(VISIBLE);
+-            if (logout != null) logout.setVisible(true);
+-        }else{
+-            //If is connected set visibility to login button
+-            this.findViewById(R.id.newArticleButton).setVisibility(GONE);
+-            this.findViewById(R.id.loginButton).setVisibility(VISIBLE);
+-            if (logout != null) logout.setVisible(false);
+-        }
+-        saveLastUpdate();
+-    }
+-
+-    @Override
+-    public boolean onOptionsItemSelected(MenuItem item) {
+-        //Get option selected
+-        switch (item.getItemId()) {
+-            case R.id.logout:
+-                logout();
+-                return true;
+-
+-            case R.id.national:
+-                menu.findItem(R.id.topicLabel).setTitle(R.string.national);
+-                topic = "National";
+-                filterArticles();
+-                break;
+-            case R.id.sports:
+-                menu.findItem(R.id.topicLabel).setTitle(R.string.sports);
+-                topic = "Sports";
+-                filterArticles();
+-                break;
+-            case R.id.economy:
+-                menu.findItem(R.id.topicLabel).setTitle(R.string.economy);
+-                topic = "Economy";
+-                filterArticles();
+-                break;
+-            case R.id.technology:
+-                menu.findItem(R.id.topicLabel).setTitle(R.string.technology);
+-                topic = "Technology";
+-                filterArticles();
+-                break;
+-            case R.id.all:
+-                menu.findItem(R.id.topicLabel).setTitle(R.string.all);
+-                topic = "All";
+-                filterArticles();
+-                break;
+-            default:
+-                // If we got here, the user's action was not recognized.
+-                // Invoke the superclass to handle it.
+-                return super.onOptionsItemSelected(item);
+-        }
+-        return true;
+-    }
+-
+-
+-    private void logout(){
+-        //Log out
+-        AlertDialog.Builder logoutDialog = new AlertDialog.Builder(context);
+-        logoutDialog.setTitle(R.string.confirm_logout_title);
+-        logoutDialog.setMessage(R.string.logout_confirm);
+-        logoutDialog.setIcon(R.drawable.logout_black);
+-        logoutDialog.setPositiveButton(R.string.yes,
+-                new DialogInterface.OnClickListener() {
+-                    public void onClick(DialogInterface dialog, int which) {
+-                        Toast toast = Toast.makeText(context, R.string.loging_out, Toast.LENGTH_SHORT);
+-                        toast.show();
+-                        ModelManager.logout(context);
+-                        refresh();
+-                    }
+-                });
+-        logoutDialog.setNegativeButton(R.string.no,
+-                new DialogInterface.OnClickListener() {
+-                    public void onClick(DialogInterface dialog, int which) {
+-                        dialog.cancel();
+-                    }
+-                });
+-        logoutDialog.show();
+-    }
+-
+-
+-    @Override
+-    public boolean onCreateOptionsMenu(Menu menu) {
+-        //inflate menu buttons in app bar
+-        MenuInflater inflater = getMenuInflater();
+-        inflater.inflate(R.menu.appbar, menu);
+-        this.menu = menu;
+-        menu.findItem(R.id.logout).setVisible(ModelManager.isConnected());
+-        return true;
+-    }
+-
+-    public void setArticles(List<Article> articles){
+-        this.articles = articles;
+-    }
+-
+-    private void filterArticles(){
+-        //filter articles with topic
+-        AdaptadorListaArticulos adapter = new AdaptadorListaArticulos(this, articles, ModelManager.isConnected());
+-        adapter.filter(topic);
+-        ListView listaArticulosView  = this.findViewById(R.id.listaArticulos);
+-        listaArticulosView.setAdapter(adapter);
+-    }
+-
+-    private void saveLastUpdate(){
+-        //Save the last article update
+-        if (articles != null && !articles.isEmpty()){
+-            SharedPreferences preferencia = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+-            SharedPreferences.Editor editor = preferencia.edit();
+-            editor.putString("date", SerializationUtils.dateToString(articles.get(0).getLastUpdate()));
+-            editor.apply();
+-        }
+-    }
+-
+-    public String getTopic(){
+-        return this.topic;
+-    }
+-
+-}
+Index: app/src/main/java/es/upm/etsiinf/upmnews/model/ModelEntity.java
+===================================================================
+diff --git a/app/src/main/java/es/upm/etsiinf/upmnews/model/ModelEntity.java b/app/src/main/java/es/upm/etsiinf/upmnews/model/ModelEntity.java
+deleted file mode 100644
+--- a/app/src/main/java/es/upm/etsiinf/upmnews/model/ModelEntity.java	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,49 +0,0 @@
+-package es.upm.etsiinf.upmnews.model;
+-
+-import java.util.Enumeration;
+-import java.util.Hashtable;
+-
+-import org.json.simple.JSONObject;
+-
+-import es.upm.etsiinf.upmnews.utils.network.exceptions.ServerCommunicationError;
+-
+-public abstract class ModelEntity {
+-    protected int id;
+-
+-    public ModelEntity(){
+-
+-    }
+-
+-    /**
+-     *
+-     * @return the object id (-1) if not saved
+-     */
+-    public int getId() {
+-        return id;
+-    }
+-
+-    /**
+-     *
+-     * @return hashtable of attributes of the entity (without id)
+-     */
+-    protected abstract Hashtable<String,String> getAttributes();
+-
+-    /**
+-     *
+-     * @return json object of the entity
+-     */
+-    @SuppressWarnings("unchecked")
+-    public JSONObject toJSON(){
+-        JSONObject jsonArticle = new JSONObject();
+-        if(getId()>0)
+-            jsonArticle.put("id", getId());
+-
+-        Hashtable<String,String> res = getAttributes();
+-        Enumeration<String> keys = res.keys();
+-        while (keys.hasMoreElements()) {
+-            String key = keys.nextElement();
+-            jsonArticle.put(key, JSONObject.escape(res.get((key))));
+-        }
+-        return jsonArticle;
+-    }
+-}
+Index: app/src/main/java/es/upm/etsiinf/upmnews/utils/network/ModelManager.java
+===================================================================
+diff --git a/app/src/main/java/es/upm/etsiinf/upmnews/utils/network/ModelManager.java b/app/src/main/java/es/upm/etsiinf/upmnews/utils/network/ModelManager.java
+deleted file mode 100644
+--- a/app/src/main/java/es/upm/etsiinf/upmnews/utils/network/ModelManager.java	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,348 +0,0 @@
+-package es.upm.etsiinf.upmnews.utils.network;
+-
+-
+-import android.content.Context;
+-import android.content.SharedPreferences;
+-
+-import org.json.simple.JSONObject;
+-
+-import java.net.HttpURLConnection;
+-import java.net.URL;
+-import java.util.ArrayList;
+-import java.util.List;
+-import java.util.Properties;
+-
+-import es.upm.etsiinf.upmnews.model.Article;
+-import es.upm.etsiinf.upmnews.utils.Logger;
+-import es.upm.etsiinf.upmnews.utils.network.exceptions.AuthenticationError;
+-import es.upm.etsiinf.upmnews.utils.network.exceptions.ServerCommunicationError;
+-
+-import static es.upm.etsiinf.upmnews.utils.network.ServiceCallUtils.parseHttpStreamResult;
+-
+-public class ModelManager {
+-
+-    private static final String AUTHORIZATION = "Authorization";
+-    private static final String CONTENTTYPE = "Content-Type";
+-    private static final String CHARSET = "charset";
+-    private static final String URLENCODED = "application/x-www-form-urlencoded";
+-    private static final String UTF8 = "utf-8";
+-    private static final String CONTENTLENGTH = "Content-Length";
+-
+-
+-    private ModelManager(){
+-        throw new IllegalStateException("Utility Class");
+-    }
+-
+-    private static RESTConnection rc = null;
+-
+-    public static boolean isConnected(){
+-        return rc.idUser!=null;
+-    }
+-
+-    public static String getLoggedIdUSer(){
+-        return rc.idUser;
+-    }
+-
+-    public static String getLoggedApiKey(){
+-        return rc.apikey;
+-    }
+-
+-    public static String getLoggedAuthType(){
+-        return rc.authType;
+-    }
+-
+-    /**
+-     *
+-     * @param ini Initializes entity manager urls and users
+-     * @throws AuthenticationError
+-     */
+-    public static void configureConnection(Properties ini)  {
+-        rc = new RESTConnection(ini);
+-    }
+-
+-    public static void stayloggedin(String idUser, String apikey, String authType) {
+-        rc.idUser = idUser;
+-        rc.authType = authType;
+-        rc.apikey = apikey;
+-    }
+-
+-        /**
+-         * Login onto remote service
+-         * @param username
+-         * @param password
+-         * @throws AuthenticationError
+-         */
+-    @SuppressWarnings("unchecked")
+-    public static void login(String username, String password) throws AuthenticationError{
+-        String res = "";
+-        try{
+-            String request = rc.serviceUrl + "login";
+-
+-            URL url = new URL(request);
+-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+-            if(rc.requireSelfSigned)
+-                TrustModifier.relaxHostChecking(connection);
+-            connection.setDoOutput(true);
+-            connection.setDoInput(true);
+-            connection.setInstanceFollowRedirects(false);
+-            connection.setRequestMethod("POST");
+-            connection.setRequestProperty(CONTENTTYPE, "application/json");
+-            connection.setRequestProperty(CHARSET, UTF8);
+-            connection.setUseCaches (false);
+-
+-            JSONObject jsonParam = new JSONObject();
+-            jsonParam.put("username", username);
+-            jsonParam.put("passwd", password);
+-
+-            ServiceCallUtils.writeJSONParams(connection, jsonParam);
+-
+-            int httpResult =connection.getResponseCode();
+-            if(httpResult ==HttpURLConnection.HTTP_OK){
+-                res = parseHttpStreamResult(connection);
+-
+-                JSONObject userJsonObject = ServiceCallUtils.readRestResultFromSingle(res);
+-                rc.idUser = userJsonObject.get("user").toString();
+-                rc.authType = userJsonObject.get(AUTHORIZATION).toString();
+-                rc.apikey = userJsonObject.get("apikey").toString();
+-                rc.isAdministrator = userJsonObject.containsKey("administrator");
+-            }else{
+-                Logger.log(Logger.ERROR,connection.getResponseMessage());
+-
+-                throw new AuthenticationError(connection.getResponseMessage());
+-            }
+-        } catch (Exception e) {
+-            throw new AuthenticationError(e.getMessage());
+-        }
+-    }
+-
+-    /**
+-     *
+-     * @return user id logged in
+-     */
+-    public static String getIdUser(){
+-        return rc.idUser;
+-    }
+-
+-    /**
+-     *
+-     * @return auth token header for user logged in
+-     */
+-    private static String getAuthTokenHeader(){
+-        return rc.authType + " apikey=" + rc.apikey;
+-    }
+-
+-    /**
+-     *
+-     * @return the list of articles in remote service
+-     * @throws ServerCommunicationError
+-     */
+-    public static List<Article> getArticles() throws ServerCommunicationError{
+-        return getArticles(-1,-1);
+-    }
+-
+-    /**
+-     *
+-     * @return the list of articles in remote service with pagination
+-     * @throws ServerCommunicationError
+-     */
+-    public static List<Article> getArticles(int buffer, int offset) throws ServerCommunicationError{
+-        String limits = "";
+-        if (buffer>0 && offset >=0){
+-            limits = "/"+buffer+"/"+offset;
+-        }
+-
+-        List<Article> result = new ArrayList<>();
+-        try{
+-            String parameters =  "";
+-            String request = rc.serviceUrl + "articles" + limits;
+-
+-            URL url = new URL(request);
+-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+-            if(rc.requireSelfSigned) TrustModifier.relaxHostChecking(connection);
+-            connection.setInstanceFollowRedirects(false);
+-            connection.setRequestMethod("GET");
+-            connection.setRequestProperty(CONTENTTYPE, URLENCODED);
+-            connection.setRequestProperty(AUTHORIZATION, getAuthTokenHeader());
+-            connection.setRequestProperty(CHARSET, UTF8);
+-            connection.setRequestProperty(CONTENTLENGTH, "" + Integer.toString(parameters.getBytes().length));
+-            connection.setUseCaches (false);
+-
+-            int httpResult =connection.getResponseCode();
+-            if(httpResult ==HttpURLConnection.HTTP_OK){
+-                String res = parseHttpStreamResult(connection);
+-                List<JSONObject> objects = ServiceCallUtils.readRestResultFromList(res);
+-                for (JSONObject jsonObject : objects) {
+-                    result.add(new Article(jsonObject));
+-                }
+-                Logger.log (Logger.INFO, objects.size() + " objects (Article) retrieved");
+-            }else{
+-                throw new ServerCommunicationError(connection.getResponseMessage());
+-            }
+-        } catch (Exception e) {
+-            Logger.log (Logger.ERROR, "Listing articles :" + e.getClass() + " ( "+e.getMessage() + ")");
+-            throw new ServerCommunicationError(e.getClass() + " ( "+e.getMessage() + ")");
+-        }
+-
+-        return result;
+-    }
+-
+-    /**
+-     *
+-     * @return the article in remote service with id idArticle
+-     * @throws ServerCommunicationError
+-     */
+-    public static Article getArticle(int idArticle) throws ServerCommunicationError{
+-
+-        Article result = null;
+-        try{
+-            String parameters =  "";
+-            String request = rc.serviceUrl + "article/" + idArticle;
+-
+-            URL url = new URL(request);
+-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+-            if(rc.requireSelfSigned) TrustModifier.relaxHostChecking(connection);
+-            connection.setInstanceFollowRedirects(false);
+-            connection.setRequestMethod("GET");
+-            connection.setRequestProperty(CONTENTTYPE, URLENCODED);
+-            connection.setRequestProperty(AUTHORIZATION, getAuthTokenHeader());
+-            connection.setRequestProperty(CHARSET, UTF8);
+-            connection.setRequestProperty(CONTENTLENGTH, "" + Integer.toString(parameters.getBytes().length));
+-            connection.setUseCaches (false);
+-
+-            int httpResult =connection.getResponseCode();
+-            if(httpResult ==HttpURLConnection.HTTP_OK){
+-                String res = parseHttpStreamResult(connection);
+-                JSONObject object = ServiceCallUtils.readRestResultFromGetObject(res);
+-                result = new Article(object);
+-                Logger.log (Logger.INFO, " object (Article) retrieved");
+-            }else{
+-                throw new ServerCommunicationError(connection.getResponseMessage());
+-            }
+-        } catch (Exception e) {
+-            Logger.log (Logger.ERROR, "Getting article :" + e.getClass() + " ( "+e.getMessage() + ")");
+-            throw new ServerCommunicationError(e.getClass() + " ( "+e.getMessage() + ")");
+-        }
+-
+-        return result;
+-    }
+-
+-    public static int saveArticle(Article a) throws ServerCommunicationError{
+-        try{
+-            String request = rc.serviceUrl + "article";
+-
+-            URL url = new URL(request);
+-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+-            if(rc.requireSelfSigned)
+-                TrustModifier.relaxHostChecking(connection);
+-            connection.setDoOutput(true);
+-            connection.setDoInput(true);
+-            connection.setInstanceFollowRedirects(false);
+-            connection.setRequestMethod("POST");
+-            connection.setRequestProperty(CONTENTTYPE, "application/json");
+-            connection.setRequestProperty(AUTHORIZATION, getAuthTokenHeader());
+-            connection.setRequestProperty(CHARSET, UTF8);
+-            connection.setUseCaches (false);
+-
+-            ServiceCallUtils.writeJSONParams(connection, a.toJSON());
+-
+-            int httpResult =connection.getResponseCode();
+-            if(httpResult ==HttpURLConnection.HTTP_OK){
+-                String res = parseHttpStreamResult(connection);
+-                // get id from status ok when saved
+-                int id = ServiceCallUtils.readRestResultFromInsert(res);
+-                Logger.log(Logger.INFO, "Object inserted, returned id:" + id);
+-                return id;
+-            }else{
+-                throw new ServerCommunicationError(connection.getResponseMessage());
+-            }
+-        } catch (Exception e) {
+-            Logger.log(Logger.ERROR,"Inserting article ["+a+"] : " + e.getClass() + " ( "+e.getMessage() + ")");
+-            throw new ServerCommunicationError(e.getClass() + " ( "+e.getMessage() + ")");
+-        }
+-    }
+-
+-    public static void deleteArticle(int idArticle) throws ServerCommunicationError{
+-        try{
+-            String parameters =  "";
+-            String request = rc.serviceUrl + "article/" + idArticle;
+-
+-            URL url = new URL(request);
+-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+-            if(rc.requireSelfSigned)
+-                TrustModifier.relaxHostChecking(connection);
+-            connection.setDoOutput(true);
+-            connection.setDoInput(true);
+-            connection.setInstanceFollowRedirects(false);
+-            connection.setRequestMethod("DELETE");
+-            connection.setRequestProperty(CONTENTTYPE, "application/x-www-form-urlencoded; charset=UTF-8");
+-            connection.setRequestProperty(AUTHORIZATION, getAuthTokenHeader());
+-            connection.setRequestProperty(CHARSET, UTF8);
+-            connection.setRequestProperty(CONTENTLENGTH, "" + Integer.toString(parameters.getBytes().length));
+-            connection.setUseCaches (false);
+-
+-            int httpResult =connection.getResponseCode();
+-            if(httpResult ==HttpURLConnection.HTTP_OK  || httpResult ==HttpURLConnection.HTTP_NO_CONTENT){
+-                Logger.log (Logger.INFO,"Article (id:"+idArticle+") deleted with status "+httpResult+":"+parseHttpStreamResult(connection));
+-            }else{
+-                throw new ServerCommunicationError(connection.getResponseMessage());
+-            }
+-        } catch (Exception e) {
+-            Logger.log(Logger.ERROR, "Deleting article (id:"+idArticle+") : " + e.getClass() + " ( "+e.getMessage() + ")");
+-            throw new ServerCommunicationError(e.getClass() + " ( "+e.getMessage() + ")");
+-        }
+-    }
+-
+-    //Function to check new articles on the server
+-    public static List<Article> getUpdates(String date) throws ServerCommunicationError {
+-
+-        List<Article> result = new ArrayList<>();
+-        try {
+-            if(rc==null){
+-                Properties prop = new Properties();
+-                prop.setProperty("service_url","https://sanger.dia.fi.upm.es/pmd-task/");
+-                prop.setProperty("require_self_signed_cert","TRUE");
+-                ModelManager.configureConnection(prop);
+-            }
+-            String parameters = "";
+-            String request = rc.serviceUrl + "articlesFrom/" + date;
+-
+-            URL url = new URL(request);
+-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+-            if (rc.requireSelfSigned) TrustModifier.relaxHostChecking(connection);
+-            connection.setInstanceFollowRedirects(false);
+-            connection.setRequestMethod("GET");
+-            connection.setRequestProperty(CONTENTTYPE, URLENCODED);
+-            connection.setRequestProperty(AUTHORIZATION, getAuthTokenHeader());
+-            connection.setRequestProperty(CHARSET, UTF8);
+-            connection.setRequestProperty(CONTENTLENGTH, "" + Integer.toString(parameters.getBytes().length));
+-            connection.setUseCaches(false);
+-
+-            int httpResult = connection.getResponseCode();
+-            if (httpResult == HttpURLConnection.HTTP_OK) {
+-                String res = parseHttpStreamResult(connection);
+-                List<JSONObject> objects = ServiceCallUtils.readRestResultFromList(res);
+-                for (JSONObject jsonObject : objects) {
+-                    result.add(new Article(jsonObject));
+-                }
+-                Logger.log(Logger.INFO, objects.size() + " new Articles retrieved");
+-            } else {
+-                throw new ServerCommunicationError(connection.getResponseMessage());
+-            }
+-        } catch (Exception e) {
+-            Logger.log(Logger.ERROR, "Updating articles :" + e.getClass() + " ( " + e.getMessage() + ")");
+-            throw new ServerCommunicationError(e.getClass() + " ( " + e.getMessage() + ")");
+-        }
+-
+-        return result;
+-    }
+-
+-    public static void logout(Context context){
+-        rc.clear();
+-        SharedPreferences preferencia = context.getSharedPreferences("user_info",context.MODE_PRIVATE);
+-        SharedPreferences.Editor editor = preferencia.edit();
+-        editor.putString("id_user", "");
+-        editor.putString("strApiKey", "");
+-        editor.putString("strIdAuthUser", "");
+-        editor.commit();
+-    }
+-}
+Index: app/src/main/java/es/upm/etsiinf/upmnews/utils/NotificationHelper.java
+===================================================================
+diff --git a/app/src/main/java/es/upm/etsiinf/upmnews/utils/NotificationHelper.java b/app/src/main/java/es/upm/etsiinf/upmnews/utils/NotificationHelper.java
+deleted file mode 100644
+--- a/app/src/main/java/es/upm/etsiinf/upmnews/utils/NotificationHelper.java	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,65 +0,0 @@
+-package es.upm.etsiinf.upmnews.utils;
+-
+-import android.app.Notification;
+-import android.app.NotificationChannel;
+-import android.app.NotificationManager;
+-import android.app.PendingIntent;
+-import android.content.Context;
+-import android.content.ContextWrapper;
+-import android.content.Intent;
+-import android.content.SharedPreferences;
+-import android.preference.PreferenceManager;
+-import es.upm.etsiinf.upmnews.MainActivity;
+-import es.upm.etsiinf.upmnews.R;
+-
+-public class NotificationHelper extends ContextWrapper {
+-    private NotificationManager manager;
+-
+-    private static final String DEFAULT_CHANNEL = "NEW ARTICLES";
+-    public static final String DEFAULT_CHANNEL_ID = "1";
+-
+-    public NotificationHelper(Context base) {
+-        super(base);
+-        createChannels();
+-    }
+-
+-    //Create channel
+-    private void createChannels() {
+-        NotificationChannel defaultChannel =  new NotificationChannel(DEFAULT_CHANNEL_ID, DEFAULT_CHANNEL, NotificationManager.IMPORTANCE_HIGH);
+-        //Channel configuration
+-        defaultChannel.setShowBadge(true);
+-        defaultChannel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+-        getManager().createNotificationChannel(defaultChannel);
+-    }
+-
+-    //Create notification
+-    public void createNotification (int num) {
+-        Intent intent = new Intent(this, MainActivity.class);
+-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK| Intent.FLAG_ACTIVITY_CLEAR_TASK);
+-
+-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 1, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+-        //Build the notification
+-        Notification.Builder mBuilder= new Notification.Builder(getApplicationContext(), DEFAULT_CHANNEL_ID)
+-                .setContentTitle("UPM_NEWS")
+-                .setContentText( num +" New articles available on UPM NEWS")
+-                .setContentIntent(pendingIntent)
+-                .setSmallIcon(R.drawable.ic_news)
+-                .setAutoCancel(true);
+-        getManager().notify(1,mBuilder.build());
+-
+-    }
+-
+-    //Obtain the date when an article is created or modified
+-    public String getDate(){
+-        SharedPreferences preferencia = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+-        return preferencia.getString("date",SerializationUtils.dateToString(null));
+-    }
+-
+-    //Gets an instance of the NotificationManager service
+-    private NotificationManager getManager() {
+-        if (manager == null) {
+-            manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+-        }
+-        return manager;
+-    }
+-}
+\ No newline at end of file
+Index: app/src/main/java/es/upm/etsiinf/upmnews/utils/NotificationJobService.java
+===================================================================
+diff --git a/app/src/main/java/es/upm/etsiinf/upmnews/utils/NotificationJobService.java b/app/src/main/java/es/upm/etsiinf/upmnews/utils/NotificationJobService.java
+deleted file mode 100644
+--- a/app/src/main/java/es/upm/etsiinf/upmnews/utils/NotificationJobService.java	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,42 +0,0 @@
+-package es.upm.etsiinf.upmnews.utils;
+-
+-import android.app.job.JobParameters;
+-import android.app.job.JobService;
+-import android.util.Log;
+-import es.upm.etsiinf.upmnews.utils.async.NotificationTask;
+-
+-public class NotificationJobService extends JobService {
+-    private JobParameters params;
+-    //Async task
+-    private NotificationTask task;
+-    //Variable to configure the notifications
+-    private NotificationHelper noti;
+-
+-    //Job executed by the service
+-    @Override
+-    public boolean onStartJob(JobParameters jobParameters) {
+-        params = jobParameters;
+-        noti = new NotificationHelper(this);
+-        String date = noti.getDate();
+-        task = new NotificationTask(this, date);
+-        task.execute();
+-        return true;
+-    }
+-
+-    //Job executed when service stop abruptly
+-    @Override
+-    public boolean onStopJob(JobParameters jobParameters) {
+-        if(task!=null){
+-        task.cancel(true);
+-        }
+-        Log.e("NotificationJobService","Stopped without finish due to requirements or initialization of classes");
+-        return false;
+-    }
+-    //Method to generate Notifications
+-    public void generateNotifications(int num){
+-        if(num>0){
+-           noti.createNotification(num);
+-        }
+-        jobFinished(params,true);
+-    }
+-}
+\ No newline at end of file
+Index: app/src/main/java/es/upm/etsiinf/upmnews/utils/async/NotificationTask.java
+===================================================================
+diff --git a/app/src/main/java/es/upm/etsiinf/upmnews/utils/async/NotificationTask.java b/app/src/main/java/es/upm/etsiinf/upmnews/utils/async/NotificationTask.java
+deleted file mode 100644
+--- a/app/src/main/java/es/upm/etsiinf/upmnews/utils/async/NotificationTask.java	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,47 +0,0 @@
+-package es.upm.etsiinf.upmnews.utils.async;
+-
+-import android.os.AsyncTask;
+-import android.util.Log;
+-
+-import java.util.List;
+-
+-import es.upm.etsiinf.upmnews.model.Article;
+-import es.upm.etsiinf.upmnews.utils.NotificationJobService;
+-import es.upm.etsiinf.upmnews.utils.network.ModelManager;
+-import es.upm.etsiinf.upmnews.utils.network.exceptions.ServerCommunicationError;
+-
+-public class NotificationTask extends AsyncTask<Void, Void, List<Article>> {
+-
+-    //calling context of the app to perform callbacks
+-    private NotificationJobService context;
+-    //local field with the date of the last article
+-    private String checkDate;
+-
+-    //Constructor of the async task
+-    public NotificationTask(NotificationJobService con, String check){
+-        this.context = con;
+-        this.checkDate=check;
+-    }
+-
+-    //Async method executed
+-    @Override
+-    protected List<Article> doInBackground(Void... voids) {
+-        List<Article> res = null;
+-
+-        try {
+-            res= ModelManager.getUpdates(checkDate);
+-        } catch (ServerCommunicationError e) {
+-            Log.e("NotificationTask",e.getMessage());
+-        }
+-
+-        return res;
+-    }
+-
+-    //Async method executed when task finished generating notifications
+-    @Override
+-    public void onPostExecute(List<Article> res){
+-        if(res!=null){
+-            context.generateNotifications(res.size());
+-        }
+-    }
+-}
+Index: .idea/codeStyles/Project.xml
+===================================================================
+diff --git a/.idea/codeStyles/Project.xml b/.idea/codeStyles/Project.xml
+deleted file mode 100644
+--- a/.idea/codeStyles/Project.xml	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,116 +0,0 @@
+-<component name="ProjectCodeStyleConfiguration">
+-  <code_scheme name="Project" version="173">
+-    <codeStyleSettings language="XML">
+-      <indentOptions>
+-        <option name="CONTINUATION_INDENT_SIZE" value="4" />
+-      </indentOptions>
+-      <arrangement>
+-        <rules>
+-          <section>
+-            <rule>
+-              <match>
+-                <AND>
+-                  <NAME>xmlns:android</NAME>
+-                  <XML_ATTRIBUTE />
+-                  <XML_NAMESPACE>^$</XML_NAMESPACE>
+-                </AND>
+-              </match>
+-            </rule>
+-          </section>
+-          <section>
+-            <rule>
+-              <match>
+-                <AND>
+-                  <NAME>xmlns:.*</NAME>
+-                  <XML_ATTRIBUTE />
+-                  <XML_NAMESPACE>^$</XML_NAMESPACE>
+-                </AND>
+-              </match>
+-              <order>BY_NAME</order>
+-            </rule>
+-          </section>
+-          <section>
+-            <rule>
+-              <match>
+-                <AND>
+-                  <NAME>.*:id</NAME>
+-                  <XML_ATTRIBUTE />
+-                  <XML_NAMESPACE>http://schemas.android.com/apk/res/android</XML_NAMESPACE>
+-                </AND>
+-              </match>
+-            </rule>
+-          </section>
+-          <section>
+-            <rule>
+-              <match>
+-                <AND>
+-                  <NAME>.*:name</NAME>
+-                  <XML_ATTRIBUTE />
+-                  <XML_NAMESPACE>http://schemas.android.com/apk/res/android</XML_NAMESPACE>
+-                </AND>
+-              </match>
+-            </rule>
+-          </section>
+-          <section>
+-            <rule>
+-              <match>
+-                <AND>
+-                  <NAME>name</NAME>
+-                  <XML_ATTRIBUTE />
+-                  <XML_NAMESPACE>^$</XML_NAMESPACE>
+-                </AND>
+-              </match>
+-            </rule>
+-          </section>
+-          <section>
+-            <rule>
+-              <match>
+-                <AND>
+-                  <NAME>style</NAME>
+-                  <XML_ATTRIBUTE />
+-                  <XML_NAMESPACE>^$</XML_NAMESPACE>
+-                </AND>
+-              </match>
+-            </rule>
+-          </section>
+-          <section>
+-            <rule>
+-              <match>
+-                <AND>
+-                  <NAME>.*</NAME>
+-                  <XML_ATTRIBUTE />
+-                  <XML_NAMESPACE>^$</XML_NAMESPACE>
+-                </AND>
+-              </match>
+-              <order>BY_NAME</order>
+-            </rule>
+-          </section>
+-          <section>
+-            <rule>
+-              <match>
+-                <AND>
+-                  <NAME>.*</NAME>
+-                  <XML_ATTRIBUTE />
+-                  <XML_NAMESPACE>http://schemas.android.com/apk/res/android</XML_NAMESPACE>
+-                </AND>
+-              </match>
+-              <order>ANDROID_ATTRIBUTE_ORDER</order>
+-            </rule>
+-          </section>
+-          <section>
+-            <rule>
+-              <match>
+-                <AND>
+-                  <NAME>.*</NAME>
+-                  <XML_ATTRIBUTE />
+-                  <XML_NAMESPACE>.*</XML_NAMESPACE>
+-                </AND>
+-              </match>
+-              <order>BY_NAME</order>
+-            </rule>
+-          </section>
+-        </rules>
+-      </arrangement>
+-    </codeStyleSettings>
+-  </code_scheme>
+-</component>
+\ No newline at end of file
+Index: app/src/main/java/es/upm/etsiinf/upmnews/utils/network/RESTConnection.java
+===================================================================
+diff --git a/app/src/main/java/es/upm/etsiinf/upmnews/utils/network/RESTConnection.java b/app/src/main/java/es/upm/etsiinf/upmnews/utils/network/RESTConnection.java
+deleted file mode 100644
+--- a/app/src/main/java/es/upm/etsiinf/upmnews/utils/network/RESTConnection.java	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,76 +0,0 @@
+-package es.upm.etsiinf.upmnews.utils.network;
+-
+-import java.net.Authenticator;
+-import java.net.PasswordAuthentication;
+-import java.util.Properties;
+-
+-public class RESTConnection {
+-    private Properties ini  = null;
+-    String idUser = null;
+-    String authType;
+-    String apikey;
+-
+-    void clear(){
+-        idUser = null;
+-        authType = null;
+-        apikey = null;
+-    }
+-
+-    boolean isAdministrator = false;
+-
+-    String serviceUrl ;
+-
+-    boolean requireSelfSigned = false;
+-
+-    public static final String ATTR_LOGIN_USER = "username";
+-    public static final String ATTR_LOGIN_PASS = "password";
+-    private static final String ATTR_SERVICE_URL = "service_url";
+-    private static final String ATTR_REQUIRE_SELF_CERT = "require_self_signed_cert";
+-    private static final String ATTR_PROXY_HOST = "";
+-    private static final String ATTR_PROXY_PORT = "";
+-    private static final String ATTR_PROXY_USER = "";
+-    private static final String ATTR_PROXY_PASS = "";
+-    public static final String ATTR_APACHE_AUTH_USER = "";
+-    public static final String ATTR_APACHE_AUTH_PASS = "";
+-
+-    RESTConnection(Properties ini){
+-        this.ini = ini;
+-        if (!ini.containsKey(ATTR_SERVICE_URL)){
+-            throw new IllegalArgumentException("Required attribute '"+ ATTR_SERVICE_URL+"' not found!");
+-        }
+-
+-        // disable auth from self signed certificates
+-        requireSelfSigned =  (ini.containsKey(ATTR_REQUIRE_SELF_CERT) && ((String)ini.get(ATTR_REQUIRE_SELF_CERT)).equalsIgnoreCase("TRUE"));
+-
+-        // add proxy http/https to the system
+-        if (ini.contains(ATTR_PROXY_HOST) && ini.contains(ATTR_PROXY_PORT)){
+-            String proxyHost = (String)ini.get(ATTR_PROXY_HOST);
+-            String proxyPort = (String)ini.get(ATTR_PROXY_PORT);
+-
+-            System.setProperty("http.proxyHost", proxyHost);
+-            System.setProperty("http.proxyPort", proxyPort);
+-            System.setProperty("https.proxyHost", proxyHost);
+-            System.setProperty("https.proxyPort", proxyPort);
+-        }
+-
+-        if (ini.contains(ATTR_PROXY_USER) && ini.contains(ATTR_PROXY_PASS))	{
+-            final String proxyUser = (String)ini.get(ATTR_PROXY_USER);
+-            final String proxyPassword = (String)ini.get(ATTR_PROXY_PASS);
+-
+-            System.setProperty("http.proxyUser", proxyUser);
+-            System.setProperty("http.proxyPassword", proxyPassword);
+-            System.setProperty("https.proxyUser", proxyUser);
+-            System.setProperty("https.proxyPassword", proxyPassword);
+-
+-            Authenticator.setDefault(
+-                    new Authenticator() {
+-                        public PasswordAuthentication getPasswordAuthentication() {
+-                            return new PasswordAuthentication(proxyUser, proxyPassword.toCharArray());
+-                        }
+-                    }
+-            );
+-        }
+-
+-        serviceUrl = ini.getProperty(ATTR_SERVICE_URL);
+-    }
+-}
+Index: app/src/main/java/es/upm/etsiinf/upmnews/utils/SerializationUtils.java
+===================================================================
+diff --git a/app/src/main/java/es/upm/etsiinf/upmnews/utils/SerializationUtils.java b/app/src/main/java/es/upm/etsiinf/upmnews/utils/SerializationUtils.java
+deleted file mode 100644
+--- a/app/src/main/java/es/upm/etsiinf/upmnews/utils/SerializationUtils.java	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,94 +0,0 @@
+-package es.upm.etsiinf.upmnews.utils;
+-
+-import android.graphics.Bitmap;
+-import android.graphics.BitmapFactory;
+-import android.os.Build;
+-import android.util.Base64;
+-import androidx.annotation.RequiresApi;
+-
+-import java.io.ByteArrayOutputStream;
+-import java.text.SimpleDateFormat;
+-import java.util.Calendar;
+-import java.util.Date;
+-
+-public class SerializationUtils {
+-    private static final String DATE_FORMAT_MYSQL = "yyyy-MM-dd hh:mm:ss";
+-
+-    public static Date dateFromString(String stringDate) throws java.text.ParseException{
+-        SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT_MYSQL);
+-        Date date = sdf.parse(stringDate);
+-        return date;
+-    }
+-
+-    public static String dateToString(Date date){
+-        SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT_MYSQL);
+-        //ALGM 2017/09/28 if date is null then use the current date
+-        String stringDate = sdf.format((date!= null)? date : Calendar.getInstance().getTime());
+-        return stringDate;
+-    }
+-
+-    @RequiresApi(api = Build.VERSION_CODES.FROYO)
+-    public static String imgToBase64String(Bitmap image)
+-    {
+-        Bitmap.CompressFormat compressFormat = Bitmap.CompressFormat.PNG;
+-        int quality = 100;
+-        ByteArrayOutputStream byteArrayOS = new ByteArrayOutputStream();
+-        image.compress(compressFormat, quality, byteArrayOS);
+-        return Base64.encodeToString(byteArrayOS.toByteArray(), Base64.NO_WRAP);
+-    }
+-
+-    // Added try catch so it works
+-    @RequiresApi(api = Build.VERSION_CODES.FROYO)
+-    public static Bitmap base64StringToImg(String input)
+-    {
+-        try {
+-            byte[] decodedBytes = Base64.decode(input, Base64.NO_WRAP);
+-            return BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.length);
+-        } catch(Exception e) {
+-            e.getMessage();
+-            return null;
+-        }
+-    }
+-
+-    @RequiresApi(api = Build.VERSION_CODES.FROYO)
+-    public static String encodeImage(Bitmap img){
+-        String base64String = imgToBase64String(img);
+-        //System.out.println("<img src=\"data:image/png;base64,"+base64String+"\">");
+-        return base64String;
+-    }
+-
+-    public static Bitmap createScaledImage(Bitmap src, int w, int h){
+-
+-        int finalw = w;
+-        int finalh = h;
+-        double factor = 1.0d;
+-        if(src.getWidth() > src.getHeight()){
+-            factor = ((double)src.getHeight()/(double)src.getWidth());
+-            finalh = (int)(finalw * factor);
+-        }else{
+-            factor = ((double)src.getWidth()/(double)src.getHeight());
+-            finalw = (int)(finalh * factor);
+-        }
+-
+-        Bitmap resizedImg = Bitmap.createScaledBitmap(src, finalw, finalh, true);
+-        return resizedImg;
+-    }
+-
+-    public static String createScaledStrImage(String strSrc, int w, int h){
+-        Bitmap src = base64StringToImg(strSrc);
+-        int finalw = w;
+-        int finalh = h;
+-        double factor = 1.0d;
+-        if(src.getWidth() > src.getHeight()){
+-            factor = ((double)src.getHeight()/(double)src.getWidth());
+-            finalh = (int)(finalw * factor);
+-        }else{
+-            factor = ((double)src.getWidth()/(double)src.getHeight());
+-            finalw = (int)(finalh * factor);
+-        }
+-
+-        Bitmap resizedImg = Bitmap.createScaledBitmap(src, finalw, finalh, true);
+-        return imgToBase64String(resizedImg);
+-    }
+-
+-}
+Index: app/src/main/java/es/upm/etsiinf/upmnews/utils/network/exceptions/ServerCommunicationError.java
+===================================================================
+diff --git a/app/src/main/java/es/upm/etsiinf/upmnews/utils/network/exceptions/ServerCommunicationError.java b/app/src/main/java/es/upm/etsiinf/upmnews/utils/network/exceptions/ServerCommunicationError.java
+deleted file mode 100644
+--- a/app/src/main/java/es/upm/etsiinf/upmnews/utils/network/exceptions/ServerCommunicationError.java	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,11 +0,0 @@
+-package es.upm.etsiinf.upmnews.utils.network.exceptions;
+-public class ServerCommunicationError extends Exception {
+-    /**
+-     *
+-     */
+-    private static final long serialVersionUID = -2703194338913940270L;
+-
+-    public ServerCommunicationError(String message){
+-        super(message);
+-    }
+-}
+Index: app/src/main/java/es/upm/etsiinf/upmnews/utils/network/ServiceCallUtils.java
+===================================================================
+diff --git a/app/src/main/java/es/upm/etsiinf/upmnews/utils/network/ServiceCallUtils.java b/app/src/main/java/es/upm/etsiinf/upmnews/utils/network/ServiceCallUtils.java
+deleted file mode 100644
+--- a/app/src/main/java/es/upm/etsiinf/upmnews/utils/network/ServiceCallUtils.java	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,104 +0,0 @@
+-package es.upm.etsiinf.upmnews.utils.network;
+-
+-import org.json.simple.JSONArray;
+-import org.json.simple.JSONObject;
+-import org.json.simple.JSONValue;
+-import org.json.simple.parser.ParseException;
+-
+-import java.io.BufferedReader;
+-import java.io.DataOutputStream;
+-import java.io.IOException;
+-import java.io.InputStreamReader;
+-import java.io.OutputStream;
+-import java.io.UnsupportedEncodingException;
+-import java.net.HttpURLConnection;
+-import java.util.ArrayList;
+-import java.util.List;
+-import java.util.Set;
+-
+-import es.upm.etsiinf.upmnews.utils.network.exceptions.AuthenticationError;
+-import es.upm.etsiinf.upmnews.utils.network.exceptions.ServerCommunicationError;
+-
+-public class ServiceCallUtils {
+-
+-    public static String parseHttpStreamResult(HttpURLConnection connection) throws UnsupportedEncodingException, IOException {
+-        String res = "";
+-        BufferedReader br = new BufferedReader(new InputStreamReader(
+-                connection.getInputStream(),"utf-8"));
+-        String line = null;
+-        while ((line = br.readLine()) != null) {
+-            res += line + "\n";
+-
+-        }
+-        br.close();
+-        return res;
+-    }
+-
+-    @SuppressWarnings("unchecked")
+-    public static int readRestResultFromInsert(String res) throws ParseException, ServerCommunicationError {
+-        Object o = JSONValue.parseWithException(res);
+-        if (o instanceof JSONObject){
+-            JSONObject jsonResult = (JSONObject) JSONValue.parseWithException(res);
+-            Set<String> keys = jsonResult.keySet();
+-            if (keys.contains("id"))
+-                return Integer.parseInt(jsonResult.get("id").toString());
+-            else{
+-                throw new ServerCommunicationError("Error: No id in json returned");
+-            }
+-        }else{
+-            throw new ServerCommunicationError("Error: No json returned");
+-        }
+-    }
+-
+-    @SuppressWarnings("unchecked")
+-    public static JSONObject readRestResultFromGetObject(String res) throws ParseException, ServerCommunicationError {
+-        Object o = JSONValue.parseWithException(res);
+-        if (o instanceof JSONObject){
+-            JSONObject jsonResult = (JSONObject) JSONValue.parseWithException(res);
+-            return jsonResult;
+-        }else{
+-            throw new ServerCommunicationError("Error: No json returned");
+-        }
+-    }
+-
+-    public static List<JSONObject> readRestResultFromList(String res) throws AuthenticationError {
+-        List<JSONObject> result = new ArrayList<JSONObject>() ;
+-        try {
+-            Object o = JSONValue.parseWithException(res);
+-            if (o instanceof JSONObject){
+-                JSONObject jsonResult = (JSONObject) JSONValue.parseWithException(res);
+-                @SuppressWarnings("unchecked")
+-                Set<Object> keys = jsonResult.keySet();
+-                for (Object keyRow : keys) {
+-                    JSONObject jsonObj = (JSONObject)jsonResult.get(keyRow);
+-                    result.add(jsonObj);
+-                }
+-            } else if (o instanceof JSONArray){
+-                JSONArray jsonArray = (JSONArray) JSONValue.parseWithException(res);
+-                for (Object row : jsonArray) {
+-                    JSONObject jsonObj = (JSONObject)row;
+-                    result.add(jsonObj);
+-                }
+-            } else{
+-                throw new AuthenticationError("Result is not an Json Array nor Object");
+-            }
+-        } catch (ParseException e) {
+-            throw new AuthenticationError(e.getMessage());
+-        }
+-        return result;
+-    }
+-
+-    public static JSONObject readRestResultFromSingle(String res) throws ParseException {
+-        return (JSONObject) JSONValue.parseWithException(res);
+-    }
+-
+-    public static void writeJSONParams(HttpURLConnection connection, JSONObject json) throws IOException{
+-        // Send POST output.
+-        DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
+-        wr.writeBytes(json.toJSONString());//(URLEncoder.encode(json.toJSONString(),"UTF-8"));
+-        wr.flush();
+-        wr.close();
+-    }
+-
+-
+-}
+Index: app/src/main/java/es/upm/etsiinf/upmnews/utils/network/SingletonRESTClient.java
+===================================================================
+diff --git a/app/src/main/java/es/upm/etsiinf/upmnews/utils/network/SingletonRESTClient.java b/app/src/main/java/es/upm/etsiinf/upmnews/utils/network/SingletonRESTClient.java
+deleted file mode 100644
+--- a/app/src/main/java/es/upm/etsiinf/upmnews/utils/network/SingletonRESTClient.java	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,5 +0,0 @@
+-package es.upm.etsiinf.upmnews.utils.network;
+-
+-public class SingletonRESTClient {
+-
+-}
+Index: app/src/main/java/es/upm/etsiinf/upmnews/utils/network/TrustModifier.java
+===================================================================
+diff --git a/app/src/main/java/es/upm/etsiinf/upmnews/utils/network/TrustModifier.java b/app/src/main/java/es/upm/etsiinf/upmnews/utils/network/TrustModifier.java
+deleted file mode 100644
+--- a/app/src/main/java/es/upm/etsiinf/upmnews/utils/network/TrustModifier.java	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,51 +0,0 @@
+-package es.upm.etsiinf.upmnews.utils.network;
+-
+-
+-import java.net.*;
+-import javax.net.ssl.*;
+-import java.security.*;
+-import java.security.cert.*;
+-
+-public class TrustModifier {
+-    private static final TrustingHostnameVerifier
+-            TRUSTING_HOSTNAME_VERIFIER = new TrustingHostnameVerifier();
+-    private static SSLSocketFactory factory;
+-
+-    /** Call this with any HttpURLConnection, and it will
+-     modify the trust settings if it is an HTTPS connection. */
+-    public static void relaxHostChecking(HttpURLConnection conn)
+-            throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
+-
+-        if (conn instanceof HttpsURLConnection) {
+-            HttpsURLConnection httpsConnection = (HttpsURLConnection) conn;
+-            SSLSocketFactory factory = prepFactory(httpsConnection);
+-            httpsConnection.setSSLSocketFactory(factory);
+-            httpsConnection.setHostnameVerifier(TRUSTING_HOSTNAME_VERIFIER);
+-        }
+-    }
+-
+-    static synchronized SSLSocketFactory
+-    prepFactory(HttpsURLConnection httpsConnection)
+-            throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+-
+-        if (factory == null) {
+-            SSLContext ctx = SSLContext.getInstance("TLS");
+-            ctx.init(null, new TrustManager[]{ new AlwaysTrustManager() }, null);
+-            factory = ctx.getSocketFactory();
+-        }
+-        return factory;
+-    }
+-
+-    private static final class TrustingHostnameVerifier implements HostnameVerifier {
+-        public boolean verify(String hostname, SSLSession session) {
+-            return true;
+-        }
+-    }
+-
+-    private static class AlwaysTrustManager implements X509TrustManager {
+-        public void checkClientTrusted(X509Certificate[] arg0, String arg1) throws CertificateException { }
+-        public void checkServerTrusted(X509Certificate[] arg0, String arg1) throws CertificateException { }
+-        public X509Certificate[] getAcceptedIssuers() { return null; }
+-    }
+-
+-}
+\ No newline at end of file
+Index: app/src/main/java/es/upm/etsiinf/upmnews/utils/async/UploadArticleTask.java
+===================================================================
+diff --git a/app/src/main/java/es/upm/etsiinf/upmnews/utils/async/UploadArticleTask.java b/app/src/main/java/es/upm/etsiinf/upmnews/utils/async/UploadArticleTask.java
+deleted file mode 100644
+--- a/app/src/main/java/es/upm/etsiinf/upmnews/utils/async/UploadArticleTask.java	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ /dev/null	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
+@@ -1,46 +0,0 @@
+-package es.upm.etsiinf.upmnews.utils.async;
+-
+-import android.os.AsyncTask;
+-import android.util.Log;
+-
+-import es.upm.etsiinf.upmnews.EditCreateForm;
+-import es.upm.etsiinf.upmnews.model.Article;
+-import es.upm.etsiinf.upmnews.utils.network.ModelManager;
+-import es.upm.etsiinf.upmnews.utils.network.exceptions.ServerCommunicationError;
+-
+-public class UploadArticleTask extends AsyncTask<Void, Void, Boolean> {
+-
+-    //Article created to upload to the server
+-    private Article upload;
+-    //calling context of the app to perform callbacks
+-    private EditCreateForm context;
+-
+-    //Constructor of the async task
+-    public UploadArticleTask(EditCreateForm con,Article ok){
+-        this.upload=ok;
+-        this.context=con;
+-    }
+-
+-    //Async method executed
+-    @Override
+-    protected Boolean doInBackground(Void... voids) {
+-        boolean res= true;
+-        try {
+-            ModelManager.saveArticle(upload);
+-        } catch (ServerCommunicationError e) {
+-            res=false;
+-            Log.i("UploadArticleTask",e.getMessage());
+-        }
+-        return res;
+-    }
+-
+-    //Async method executed when task finished to display feedback of the operation
+-    @Override
+-    public void onPostExecute(Boolean res){
+-        if(res){
+-            context.saveOk();
+-        }else{
+-            context.saveFail();
+-        }
+-    }
+-    }
+Index: .idea/vcs.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<project version=\"4\">\r\n  <component name=\"VcsDirectoryMappings\">\r\n    <mapping directory=\"$PROJECT_DIR$\" vcs=\"Git\" />\r\n  </component>\r\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/vcs.xml b/.idea/vcs.xml
+--- a/.idea/vcs.xml	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ b/.idea/vcs.xml	(date 1669031761464)
+@@ -1,6 +1,6 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <project version="4">
+   <component name="VcsDirectoryMappings">
+-    <mapping directory="$PROJECT_DIR$" vcs="Git" />
++    <mapping directory="" vcs="Git" />
+   </component>
+ </project>
+\ No newline at end of file
+Index: settings.gradle
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>rootProject.name='UPM News'\r\ninclude ':app'\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/settings.gradle b/settings.gradle
+--- a/settings.gradle	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ b/settings.gradle	(date 1669031719350)
+@@ -1,2 +1,2 @@
+-rootProject.name='UPM News'
++rootProject.name='EFM-News'
+ include ':app'
+Index: .idea/misc.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<project version=\"4\">\r\n  <component name=\"ProjectRootManager\" version=\"2\" languageLevel=\"JDK_11\" default=\"true\" project-jdk-name=\"11\" project-jdk-type=\"JavaSDK\">\r\n    <output url=\"file://$PROJECT_DIR$/build/classes\" />\r\n  </component>\r\n  <component name=\"ProjectType\">\r\n    <option name=\"id\" value=\"Android\" />\r\n  </component>\r\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/misc.xml b/.idea/misc.xml
+--- a/.idea/misc.xml	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ b/.idea/misc.xml	(date 1669031761452)
+@@ -1,6 +1,7 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <project version="4">
+-  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="11" project-jdk-type="JavaSDK">
++  <component name="ExternalStorageConfigurationManager" enabled="true" />
++  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="Android Studio default JDK" project-jdk-type="JavaSDK">
+     <output url="file://$PROJECT_DIR$/build/classes" />
+   </component>
+   <component name="ProjectType">
+Index: .idea/gradle.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<project version=\"4\">\r\n  <component name=\"GradleMigrationSettings\" migrationVersion=\"1\" />\r\n  <component name=\"GradleSettings\">\r\n    <option name=\"linkedExternalProjectsSettings\">\r\n      <GradleProjectSettings>\r\n        <option name=\"testRunner\" value=\"GRADLE\" />\r\n        <option name=\"distributionType\" value=\"DEFAULT_WRAPPED\" />\r\n        <option name=\"externalProjectPath\" value=\"$PROJECT_DIR$\" />\r\n        <option name=\"gradleJvm\" value=\"Embedded JDK\" />\r\n        <option name=\"modules\">\r\n          <set>\r\n            <option value=\"$PROJECT_DIR$\" />\r\n            <option value=\"$PROJECT_DIR$/app\" />\r\n          </set>\r\n        </option>\r\n      </GradleProjectSettings>\r\n    </option>\r\n  </component>\r\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/gradle.xml b/.idea/gradle.xml
+--- a/.idea/gradle.xml	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ b/.idea/gradle.xml	(date 1669031761492)
+@@ -1,13 +1,11 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <project version="4">
+-  <component name="GradleMigrationSettings" migrationVersion="1" />
+   <component name="GradleSettings">
+     <option name="linkedExternalProjectsSettings">
+       <GradleProjectSettings>
+         <option name="testRunner" value="GRADLE" />
+         <option name="distributionType" value="DEFAULT_WRAPPED" />
+         <option name="externalProjectPath" value="$PROJECT_DIR$" />
+-        <option name="gradleJvm" value="Embedded JDK" />
+         <option name="modules">
+           <set>
+             <option value="$PROJECT_DIR$" />
+Index: .idea/.name
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>UPM News
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/.name b/.idea/.name
+--- a/.idea/.name	(revision 74f8101b7135ba18b4c87f0a00e6b8be55b6796b)
++++ b/.idea/.name	(date 1669031761095)
+@@ -1,1 +1,1 @@
+-UPM News
+\ No newline at end of file
++EFM-News
+\ No newline at end of file
